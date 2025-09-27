@@ -183,16 +183,17 @@ function leadConfirmationTemplate({ name }: { name: string }): string {
                 <td style="padding:32px 36px;background:#0f172a;color:#ecfdf5;text-align:left;">
                   <table cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">
                     <tr>
-                      <td style="vertical-align:middle;">
-                        <span style="display:inline-flex;align-items:center;justify-content:center;height:44px;width:44px;border-radius:14px;background:#10b9811a;">
-                          <img
-                            src="https://www.appseed.com.br/appseed_logo.png"                           
-                            alt="AppSeed"
-                            width="28"
-                            height="24"
-                            style="display:block;"
-                          />
-                        </span>
+                      <td align="center" valign="middle" style="padding:0;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" width="44" height="44" style="width:44px;height:44px;border-collapse:collapse;">
+                          <tr>
+                            <td align="center" valign="middle" bgcolor="#E6F7F1"
+                                style="width:44px;height:44px;border-radius:14px;">
+                              <img src="https://www.appseed.com.br/appseed_logo.png"
+                                  alt="AppSeed" width="28" height="24"
+                                  style="display:block;margin:0 auto;">
+                            </td>
+                          </tr>
+                        </table>
                       </td>
                       <td style="padding-left:18px;vertical-align:middle;">
                         <p style="margin:0;font-size:12px;letter-spacing:0.24em;text-transform:uppercase;color:rgba(236,253,245,0.65);">AppSeed</p>
