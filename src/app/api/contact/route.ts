@@ -186,7 +186,7 @@ function leadConfirmationTemplate({ name }: { name: string }): string {
                       <td style="vertical-align:middle;">
                         <span style="display:inline-flex;align-items:center;justify-content:center;height:44px;width:44px;border-radius:14px;background:#10b9811a;">
                           <img
-                            src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAxOSAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEwLjU2ODQgNy4wNzU3N0MxMC44NzQgMy41NjE3OCAxMS4wOTEgMi41NjI2MiAxNy44MzcgMC44OTk4NzRDMTcuODM3IDIuOTQyNjcgMTYuODk2NiA4LjE4ODMzIDEwLjU2ODQgNy4wNzU3N0MxMC4xNDc2IDcuMTQ1NDIgOC40OTg3OSA3LjcwNDgyIDkuNDc1NzYgOS41OTM2NEM1LjUxMzcxIDEyLjA1MjYgMi4yNzEgOS4xODEyMSAxLjIxMTAxIDcuNzA0ODJDNS45MDk4IDUuMjk1MTggOC43MjI3NSA4LjEzNzgxIDkuNDc1NzYgOS41OTM2NEM4LjQ5ODc5IDcuNzA0ODIgMTAuMTQ3NiA3LjE0NTQyIDEwLjU2ODQgNy4wNzU3N1oiIGZpbGw9IiMxMGI5ODEiLz4KPHBhdGggZD0iTTEwLjU2ODQgNy4wNzU3N0MxMC44NzQgMy41NjE3OCAxMS4wOTEgMi41NjI2MiAxNy44MzcgMC44OTk4NzRDMTcuODM3IDIuOTQyNjcgMTYuODk2NiA4LjE4ODMzIDEwLjU2ODQgNy4wNzU3N1pNMTAuNTY4NCA3LjA3NTc3QzEwLjE0NzYgNy4xNDU0MiA4LjQ5ODc5IDcuNzA0ODIgOS40NzU3NiA5LjU5MzY0TTkuNDc1NzYgOS41OTM2NEM4LjcyMjc1IDguMTM3ODEgNS45MDk4IDUuMjk1MTggMS4yMTEwMSA3LjcwNDgyQzIuMjcxIDkuMTgxMjEgNS41MTM3MSAxMi4wNTI2IDkuNDc1NzYgOS41OTM2NFpNOS40NzU3NiA5LjU5MzY0QzEwLjcxMDkgMTEuNTg4OSAxMC40Mjc5IDEzLjU4NTcgOC42MjA2NCAxNS4xNTE5IiBzdHJva2U9IiMzNGQzOTkiIHN0cm9rZS13aWR0aD0iMS42Ii8+Cjwvc3ZnPgo="
+                            src="https://www.appseed.com.br/appseed_logo.png"                           
                             alt="AppSeed"
                             width="28"
                             height="24"
