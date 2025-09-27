@@ -359,8 +359,8 @@ export default function Home() {
       <header className="sticky top-0 z-30 border-b border-slate-200/60 bg-white/80 backdrop-blur">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
           <Link href="#" className="flex items-center gap-2 font-semibold text-slate-900">
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100">
-              <Logo className="h-4" />
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full">
+              <Logo className="h-8" />
             </span>
             <span className="text-lg">AppSeed</span>
           </Link>
