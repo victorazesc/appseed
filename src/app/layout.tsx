@@ -30,8 +30,8 @@ export default function RootLayout({
       <Script
         src="https://track-mint.vercel.app/js/script.js"
         defer
-        data-website-id="Pxu9U5UPv4MqPOoesjYP3"
-        data-domain="www.appseed.com.br"
+        data-website-id="M6VGGAMjGHQIjYufPLWQ0"
+        data-domain="appseed.com.br"
         data-debug="true"
         strategy="afterInteractive"
       />
