@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import transporter from "@/app/configs/nodemailer.config";
+import { prisma } from "@/lib/prisma";
 
 const DEFAULT_FROM_EMAIL = process.env.SMTP_EMAIL ?? "";
 const DEFAULT_FROM_NAME = process.env.SMTP_FROM_NAME ?? "AppSeed";
@@ -49,6 +50,30 @@ export async function POST(request: Request) {
 
     const fromEmail = DEFAULT_FROM_EMAIL || INBOX_EMAIL;
     const from = `${DEFAULT_FROM_NAME} <${fromEmail}>`;
+
+    const existingLead = await prisma.lead.findFirst({
+      where: {
+        OR: [
+          { email },
+          ...(phone ? [{ phone }] : []),
+        ],
+      },
+    });
+
+    if (!existingLead) {
+      await prisma.lead.create({
+        data: {
+          name,
+          email,
+          phone: phone || null,
+          company: company || null,
+          projectType: projectType || null,
+          budget: budget || null,
+          timeline: timeline || null,
+          message: message || null,
+        },
+      });
+    }
 
     await transporter.sendMail({
       from,

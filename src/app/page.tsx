@@ -307,6 +307,29 @@ const processSteps = [
   },
 ];
 
+const processTimeline = [
+  {
+    number: "01",
+    title: "Discovery",
+    description: "Entendemos sua visão e definimos o escopo do MVP",
+  },
+  {
+    number: "02",
+    title: "Design & Prototipação",
+    description: "Criamos a experiência do usuário e validamos conceitos",
+  },
+  {
+    number: "03",
+    title: "Desenvolvimento",
+    description: "Construímos seu MVP com tecnologias modernas",
+  },
+  {
+    number: "04",
+    title: "Launch & Growth",
+    description: "Lançamos e implementamos estratégias de crescimento",
+  },
+];
+
 const technologyGroups = [
   {
     title: "Frontend",
@@ -515,6 +538,34 @@ export default function Home() {
               qualidade, acompanhando sua equipe durante todas as etapas do projeto.
             </p>
           </header>
+          <div className="overflow-hidden rounded-[36px] bg-emerald-50/70 px-6 py-12 shadow-[0_32px_80px_-60px_rgba(16,185,129,0.65)] sm:px-10">
+            <div className="flex flex-col gap-10 sm:flex-row sm:items-start">
+              {processTimeline.map((step, index) => (
+                <div
+                  key={step.number}
+                  className="flex flex-1 flex-col items-center text-center"
+                >
+                  <div className="flex w-full items-center justify-center gap-4">
+                    {index > 0 ? (
+                      <span className="hidden h-[2px] flex-1 rounded-full bg-gradient-to-r from-emerald-200 via-emerald-200 to-emerald-300 sm:block" />
+                    ) : null}
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-b from-emerald-400 to-emerald-500 text-lg font-semibold text-white shadow-[0_18px_40px_-28px_rgba(16,185,129,0.85)]">
+                      {step.number}
+                    </div>
+                    {index < processTimeline.length - 1 ? (
+                      <span className="hidden h-[2px] flex-1 rounded-full bg-gradient-to-r from-emerald-300 via-emerald-200 to-emerald-200 sm:block" />
+                    ) : null}
+                  </div>
+                  <div className="mt-6 space-y-2">
+                    <h3 className="text-base font-semibold text-slate-900">
+                      {step.title}
+                    </h3>
+                    <p className="text-sm text-slate-600">{step.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
           <div className="grid gap-6 md:grid-cols-2">
             {processSteps.map((step, index) => (
               <Card key={step.title} className="h-full">
@@ -745,7 +796,7 @@ export default function Home() {
                 <IconBubble className="h-8 w-8 rounded-xl bg-emerald-500/10 text-emerald-400">
                   <MapPinIcon className="h-4 w-4" />
                 </IconBubble>
-                São Paulo, Brasil
+                Online
               </li>
             </ul>
           </div>
@@ -770,7 +821,7 @@ export default function Home() {
               </h3>
               <ul className="space-y-3 text-sm text-slate-400">
                 <li>
-                  <Link className="transition-colors hover:text-emerald-400" href="#">
+                  <Link className="transition-colors hover:text-emerald-400" href="/politica-de-privacidade">
                     Política de Privacidade
                   </Link>
                 </li>
