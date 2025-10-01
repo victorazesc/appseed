@@ -28,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <Script
-        src="https://track-mint.vercel.app/js/script.js"
+        src="https://trackmint.app/js/script.js"
         defer
         data-website-id="_Vo-Pp8MfMy8DD5myN2Kl"
         data-domain="appseed.com.br"
