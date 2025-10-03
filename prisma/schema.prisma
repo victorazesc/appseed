@@ -7,18 +7,62 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Lead {
-  id          String   @id @default(cuid())
-  name        String
-  email       String
-  phone       String?
-  company     String?
-  projectType String?
-  budget      String?
-  timeline    String?
-  message     String?
-  createdAt   DateTime @default(now())
+enum ActivityType {
+  note
+  call
+  email
+  whatsapp
+  task
+}
 
-  @@unique([email])
-  @@unique([phone])
+model Pipeline {
+  id        String   @id @default(cuid())
+  name      String
+  stages    Stage[]
+  leads     Lead[]
+  createdAt DateTime @default(now())
+
+  @@unique([name])
+}
+
+model Stage {
+  id         String   @id @default(cuid())
+  name       String
+  position   Int
+  pipeline   Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  pipelineId String
+  leads      Lead[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([pipelineId, position])
+  @@unique([pipelineId, name])
+}
+
+model Lead {
+  id         String    @id @default(cuid())
+  name       String
+  email      String?
+  phone      String?
+  company    String?
+  valueCents Int?
+  ownerId    String?
+  pipeline   Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  pipelineId String
+  stage      Stage?    @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  stageId    String?
+  activities Activity[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model Activity {
+  id        String       @id @default(cuid())
+  type      ActivityType
+  content   String
+  dueAt     DateTime?
+  createdBy String?
+  lead      Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId    String
+  createdAt DateTime     @default(now())
 }

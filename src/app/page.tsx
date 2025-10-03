@@ -42,6 +42,7 @@ import {
   UsersIcon,
 } from "@/components/icons";
 import { cn } from "@/lib/utils";
+import { Facebook, FacebookIcon, Instagram, InstagramIcon } from "lucide-react";
 
 const navigation = [
   { href: "#services", label: "Serviços" },
@@ -418,8 +419,7 @@ export default function Home() {
             </Badge>
             <div className="space-y-6">
               <h1 className="text-balance text-4xl font-semibold leading-[1.05] tracking-tight text-slate-900 sm:text-5xl lg:text-[56px]">
-                Desenvolvemos <span className="text-emerald-500">aplicativos web</span> que fazem sua empresa
-                {" "}
+                Desenvolvemos <span className="text-emerald-500">aplicativos web</span> que fazem sua empresa{" "}
                 <span className="text-emerald-500">crescer</span>
               </h1>
               <p className="max-w-2xl text-lg leading-relaxed text-slate-600">
@@ -835,14 +835,19 @@ export default function Home() {
                     Política de Cookies
                   </Link>
                 </li>
+                <li>
+                  <Link className="transition-colors hover:text-emerald-400" href="/dashboard">
+                    Admin
+                  </Link>
+                </li>
               </ul>
               <div className="flex items-center gap-3 pt-2 text-slate-500">
-                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-700/80 bg-slate-800/60 text-emerald-400">
-                  in
-                </span>
-                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-700/80 bg-slate-800/60 text-emerald-400">
-                  ig
-                </span>
+                <Link className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-700/80 bg-slate-800/60 text-emerald-400" href="https://www.instagram.com/appseedsoftware" target="_blank" rel="noopener noreferrer">
+                  <InstagramIcon className="h-4" />
+                </Link>
+                <Link className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-700/80 bg-slate-800/60 text-emerald-400" href="https://www.facebook.com/profile.php?id=61581725999138" target="_blank" rel="noopener noreferrer">
+                  <FacebookIcon className="h-4" />
+                </Link>
                 <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-700/80 bg-slate-800/60 text-emerald-400">
                   <Logo className="h-4" />
                 </span>

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { ActivityType } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
-import transporter from "@/app/configs/nodemailer.config";
+import { mailer, isMailerConfigured } from "@/app/configs/nodemailer.config";
 import { prisma } from "@/lib/prisma";
 
 const DEFAULT_FROM_EMAIL = process.env.SMTP_EMAIL ?? "";
@@ -8,7 +10,7 @@ const DEFAULT_FROM_NAME = process.env.SMTP_FROM_NAME ?? "AppSeed";
 const INBOX_EMAIL = process.env.CONTACT_INBOX_EMAIL ?? DEFAULT_FROM_EMAIL;
 const CONFIRMATION_ENABLED = process.env.SEND_CONTACT_CONFIRMATION !== "false";
 
-type ContactPayload = {
+interface ContactPayload {
   name?: string;
   email?: string;
   company?: string;
@@ -17,23 +19,16 @@ type ContactPayload = {
   budget?: string;
   timeline?: string;
   message?: string;
-};
+}
+
+type SanitizedPayload = Required<ContactPayload>;
 
 export async function POST(request: Request) {
   try {
     const payload: ContactPayload = await request.json();
-    const {
-      name,
-      email,
-      company,
-      phone,
-      projectType,
-      budget,
-      timeline,
-      message,
-    } = sanitizePayload(payload);
+    const sanitized = sanitizePayload(payload);
 
-    if (!name || !email || !message) {
+    if (!sanitized.name || !sanitized.email || !sanitized.message) {
       return NextResponse.json(
         { message: "Por favor preencha nome, e-mail e detalhes do projeto." },
         { status: 400 },
@@ -48,62 +43,40 @@ export async function POST(request: Request) {
       );
     }
 
+    await createOrUpdateLead(sanitized);
+
     const fromEmail = DEFAULT_FROM_EMAIL || INBOX_EMAIL;
-    const from = `${DEFAULT_FROM_NAME} <${fromEmail}>`;
+    const from = DEFAULT_FROM_NAME ? `${DEFAULT_FROM_NAME} <${fromEmail}>` : fromEmail;
 
-    const existingLead = await prisma.lead.findFirst({
-      where: {
-        OR: [
-          { email },
-          ...(phone ? [{ phone }] : []),
-        ],
-      },
-    });
+    const htmlBody = leadNotificationTemplate(sanitized);
 
-    if (!existingLead) {
-      await prisma.lead.create({
-        data: {
-          name,
-          email,
-          phone: phone || null,
-          company: company || null,
-          projectType: projectType || null,
-          budget: budget || null,
-          timeline: timeline || null,
-          message: message || null,
+    if (isMailerConfigured()) {
+      await mailer.sendMail({
+        from,
+        to: INBOX_EMAIL,
+        subject: `Novo lead - ${sanitized.name}`,
+        replyTo: `${sanitized.name} <${sanitized.email}>`,
+        html: htmlBody,
+        headers: {
+          "List-Unsubscribe": "<mailto:unsubscribe@appseed.com.br>, <https://appseed.com.br/unsubscribe>",
         },
       });
-    }
 
-    await transporter.sendMail({
-      from,
-      to: INBOX_EMAIL,
-      subject: `Novo lead - ${name}`,
-      replyTo: `${name} <${email}>`,
-      html: leadNotificationTemplate({
-        name,
-        email,
-        company,
-        phone,
-        projectType,
-        budget,
-        timeline,
-        message,
-      }),
-      headers: {
-        "List-Unsubscribe": "<mailto:unsubscribe@appseed.com.br>, <https://appseed.com.br/unsubscribe>"
+      if (CONFIRMATION_ENABLED && sanitized.email) {
+        await mailer.sendMail({
+          from,
+          to: sanitized.email,
+          subject: "Recebemos sua mensagem",
+          html: leadConfirmationTemplate({ name: sanitized.name }),
+          headers: {
+            "List-Unsubscribe": "<mailto:unsubscribe@appseed.com.br>, <https://appseed.com.br/unsubscribe>",
+          },
+        });
       }
-    });
-
-    if (CONFIRMATION_ENABLED && DEFAULT_FROM_EMAIL) {
-      await transporter.sendMail({
-        from,
-        to: email,
-        subject: "Recebemos sua mensagem",
-        html: leadConfirmationTemplate({ name }),
-        headers: {
-          "List-Unsubscribe": "<mailto:unsubscribe@appseed.com.br>, <https://appseed.com.br/unsubscribe>"
-        }
+    } else {
+      console.info("[contact] Email não enviado, transporte não configurado.", {
+        to: INBOX_EMAIL,
+        subject: `Novo lead - ${sanitized.name}`,
       });
     }
 
@@ -117,7 +90,7 @@ export async function POST(request: Request) {
   }
 }
 
-function sanitizePayload(payload: ContactPayload): Required<ContactPayload> {
+function sanitizePayload(payload: ContactPayload): SanitizedPayload {
   return {
     name: payload.name?.toString().trim() ?? "",
     email: payload.email?.toString().trim() ?? "",
@@ -130,7 +103,86 @@ function sanitizePayload(payload: ContactPayload): Required<ContactPayload> {
   };
 }
 
-function leadNotificationTemplate(payload: Required<ContactPayload>): string {
+async function createOrUpdateLead(data: SanitizedPayload) {
+  const pipeline = await prisma.pipeline.findFirst({
+    orderBy: { createdAt: "asc" },
+    include: { stages: { orderBy: { position: "asc" } } },
+  });
+
+  if (!pipeline) {
+    throw new Error("Nenhum pipeline configurado.");
+  }
+
+  const stage =
+    pipeline.stages.find((entry) => entry.name === "Lead Novo") ?? pipeline.stages[0];
+
+  if (!stage) {
+    throw new Error("Nenhuma etapa disponível no pipeline.");
+  }
+
+  const activityContent = buildActivityContent(data);
+  const leadMatchFilters: Prisma.LeadWhereInput[] = [];
+  if (data.email) {
+    leadMatchFilters.push({ email: data.email });
+  }
+  if (data.phone) {
+    leadMatchFilters.push({ phone: data.phone });
+  }
+
+  const existingLead = leadMatchFilters.length
+    ? await prisma.lead.findFirst({
+        where: {
+          OR: leadMatchFilters,
+        },
+      })
+    : null;
+
+  if (existingLead) {
+    await prisma.activity.create({
+      data: {
+        leadId: existingLead.id,
+        type: ActivityType.note,
+        content: activityContent,
+      },
+    });
+    return existingLead;
+  }
+
+  await prisma.lead.create({
+    data: {
+      name: data.name,
+      email: data.email,
+      phone: data.phone || null,
+      company: data.company || null,
+      pipelineId: pipeline.id,
+      stageId: stage.id,
+      activities: {
+        create: {
+          type: ActivityType.note,
+          content: activityContent,
+        },
+      },
+    },
+  });
+}
+
+function buildActivityContent(data: SanitizedPayload) {
+  const lines = [
+    "Lead criado via formulário de contato.",
+    data.projectType ? `Tipo de projeto: ${data.projectType}` : null,
+    data.budget ? `Orçamento estimado: ${data.budget}` : null,
+    data.timeline ? `Prazo desejado: ${data.timeline}` : null,
+    data.company ? `Empresa: ${data.company}` : null,
+    data.phone ? `Telefone: ${data.phone}` : null,
+    "",
+    "Mensagem:",
+    data.message,
+  ].filter(Boolean);
+
+  return lines.join("\n");
+}
+
+function leadNotificationTemplate(payload: SanitizedPayload): string {
   const row = (label: string, value: string) => `
     <tr>
       <td style="padding:12px 18px; background:#ffffff; border-bottom:1px solid #e2e8f0; font-family:'Segoe UI',Helvetica,Arial,sans-serif; font-size:14px; color:#1f2937;">${escapeHtml(label)
@@ -203,7 +255,7 @@ function leadConfirmationTemplate({ name }: { name: string }): string {
       <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
         <tr>
           <td align="center">
-            <table cellpadding="0" cellspacing="0" width="520" style="max-width:520px;width:100%;background:#ffffff;border-radius:28px;overflow:hidden;box-shadow:0 24px 48px -32px rgba(15,23,42,0.35);">
+            <table cellpadding="0" cellspacing="0" width="520" style="max-width:520px;width:100%;background:#ffffff;border-radius:28px;overflow-hidden;box-shadow:0 24px 48px -32px rgba(15,23,42,0.35);">
               <tr>
                 <td style="padding:32px 36px;background:#0f172a;color:#ecfdf5;text-align:left;">
                   <table cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">

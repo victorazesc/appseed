@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+
+import { Analytics } from "@vercel/analytics/next";
+
+import { cn } from "@/lib/utils";
+import { Providers } from "@/components/providers";
 import Script from "next/script";
-import { Analytics } from "@vercel/analytics/next"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <Script
         src="https://www.trackmint.app/js/script.js"
         defer
@@ -35,11 +39,11 @@ export default function RootLayout({
         data-debug="true"
         strategy="afterInteractive"
       />
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} bg-slate-50 text-slate-900 antialiased`}
-      >
-        <Analytics />
-        {children}
+      <body className={cn("min-h-screen bg-background font-sans antialiased", geistSans.variable, geistMono.variable)}>
+        <Providers>
+          {children}
+          <Analytics />
+        </Providers>
       </body>
     </html>
   );
