@@ -2,9 +2,10 @@
 
 import { AlertTriangle, Clock, NotebookPen, Plus } from "lucide-react";
 
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { LeadSummary } from "@/types";
+import { useTranslation } from "@/contexts/i18n-context";
 
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
@@ -18,6 +19,8 @@ type LeadCardProps = {
 };
 
 export function LeadCard({ lead, onOpenDetails, onAddActivity, dragging }: LeadCardProps) {
+  const { messages, locale } = useTranslation();
+  const { crm } = messages;
   const createdDate = lead.createdAt ? new Date(lead.createdAt) : new Date();
   const hasOverdue = Boolean(lead.hasOverdueTasks && (lead.overdueTasksCount ?? 0) > 0);
   const nextDueAt = lead.nextDueAt ? new Date(lead.nextDueAt) : null;
@@ -27,6 +30,21 @@ export function LeadCard({ lead, onOpenDetails, onAddActivity, dragging }: LeadC
       nextDueAt &&
       nextDueAt.getTime() > now &&
       nextDueAt.getTime() - now <= 60 * 60 * 1000,
+  );
+
+  const formattedCreatedDate = formatDate(createdDate, {
+    locale,
+    format: {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    },
+  });
+
+  const createdAtLabel = crm.leadCard.createdAt.replace("{{date}}", formattedCreatedDate);
+  const activitiesLabel = crm.leadCard.activities.replace(
+    "{{count}}",
+    String(lead._count?.activities ?? 0),
   );
 
   return (
@@ -62,12 +80,12 @@ export function LeadCard({ lead, onOpenDetails, onAddActivity, dragging }: LeadC
             {!hasOverdue && dueSoon ? (
               <Badge variant="warning" className="gap-1">
                 <Clock className="h-3.5 w-3.5" />
-                Atenção
+                {crm.leadCard.attention}
               </Badge>
             ) : null}
             <Badge variant="success">
               <Clock className="mr-1 h-3 w-3" />
-              {createdDate.toLocaleDateString("pt-BR")}
+              {createdAtLabel}
             </Badge>
           </div>
         </div>
@@ -75,14 +93,14 @@ export function LeadCard({ lead, onOpenDetails, onAddActivity, dragging }: LeadC
           <p className="text-sm text-muted-foreground">{lead.company}</p>
         ) : null}
         <p className="text-base font-semibold text-foreground">
-          {formatCurrency(lead.valueCents)}
+          {formatCurrency(lead.valueCents, { locale })}
         </p>
       </div>
 
       <div className="flex items-center justify-between">
         <span className="flex items-center gap-1 text-xs text-muted-foreground">
           <NotebookPen className="h-4 w-4" />
-          {lead._count?.activities ?? 0} atividades
+          {activitiesLabel}
         </span>
         <Button
           variant="ghost"
@@ -91,7 +109,7 @@ export function LeadCard({ lead, onOpenDetails, onAddActivity, dragging }: LeadC
           className="h-8 px-2 text-xs"
         >
           <Plus className="mr-1 h-3.5 w-3.5" />
-          Atividade
+          {crm.leadCard.addActivity}
         </Button>
       </div>
     </Card>

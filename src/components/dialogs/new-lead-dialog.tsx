@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -17,19 +17,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useTranslation } from "@/contexts/i18n-context";
 
-const formSchema = z.object({
-  name: z.string().min(1, "Informe o nome"),
-  email: z.string().email("Email inválido").optional().or(z.literal("")),
-  phone: z.string().optional(),
-  company: z.string().optional(),
-  value: z.string().optional(),
-  ownerId: z.string().optional(),
-  notes: z.string().optional(),
-  stageId: z.string().optional(),
-});
-
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = {
+  name: string;
+  email?: string;
+  phone?: string;
+  company?: string;
+  value?: string;
+  ownerId?: string;
+  notes?: string;
+  stageId?: string;
+};
 
 type NewLeadDialogProps = {
   open: boolean;
@@ -48,6 +47,25 @@ type NewLeadDialogProps = {
 };
 
 export function NewLeadDialog({ open, onOpenChange, stages, onCreate }: NewLeadDialogProps) {
+  const { messages } = useTranslation();
+  const { crm } = messages;
+  const copy = crm.dialogs.newLead;
+
+  const formSchema = useMemo(
+    () =>
+      z.object({
+        name: z.string().min(1, copy.validation.nameRequired),
+        email: z.string().email(copy.validation.emailInvalid).optional().or(z.literal("")),
+        phone: z.string().optional(),
+        company: z.string().optional(),
+        value: z.string().optional(),
+        ownerId: z.string().optional(),
+        notes: z.string().optional(),
+        stageId: z.string().optional(),
+      }),
+    [copy.validation.emailInvalid, copy.validation.nameRequired],
+  );
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -105,12 +123,15 @@ export function NewLeadDialog({ open, onOpenChange, stages, onCreate }: NewLeadD
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Novo Lead</DialogTitle>
+          <DialogTitle>{copy.title}</DialogTitle>
         </DialogHeader>
         <form className="space-y-4" onSubmit={onSubmit}>
           <div className="space-y-2">
-            <Label htmlFor="lead-name">Nome</Label>
-            <Input id="lead-name" placeholder="Nome do lead" {...register("name")}
+            <Label htmlFor="lead-name">{copy.fields.name}</Label>
+            <Input
+              id="lead-name"
+              placeholder={copy.placeholders.name}
+              {...register("name")}
               aria-invalid={Boolean(errors.name)}
             />
             {errors.name ? (
@@ -119,8 +140,12 @@ export function NewLeadDialog({ open, onOpenChange, stages, onCreate }: NewLeadD
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="lead-email">Email</Label>
-              <Input id="lead-email" type="email" placeholder="lead@empresa.com" {...register("email")}
+              <Label htmlFor="lead-email">{copy.fields.email}</Label>
+              <Input
+                id="lead-email"
+                type="email"
+                placeholder={copy.placeholders.email}
+                {...register("email")}
                 aria-invalid={Boolean(errors.email)}
               />
               {errors.email ? (
@@ -128,30 +153,35 @@ export function NewLeadDialog({ open, onOpenChange, stages, onCreate }: NewLeadD
               ) : null}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="lead-phone">Telefone</Label>
-              <Input id="lead-phone" placeholder="(11) 99999-9999" {...register("phone")} />
+              <Label htmlFor="lead-phone">{copy.fields.phone}</Label>
+              <Input id="lead-phone" placeholder={copy.placeholders.phone} {...register("phone")} />
             </div>
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="lead-company">Empresa</Label>
-              <Input id="lead-company" placeholder="Empresa" {...register("company")} />
+              <Label htmlFor="lead-company">{copy.fields.company}</Label>
+              <Input id="lead-company" placeholder={copy.placeholders.company} {...register("company")} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="lead-value">Valor (R$)</Label>
-              <Input id="lead-value" placeholder="5000" {...register("value")} />
+              <Label htmlFor="lead-value">{copy.fields.value}</Label>
+              <Input id="lead-value" placeholder={copy.placeholders.value} {...register("value")} />
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="lead-owner">Responsável</Label>
-            <Input id="lead-owner" placeholder="user@email.com" {...register("ownerId")} />
+            <Label htmlFor="lead-owner">{copy.fields.owner}</Label>
+            <Input id="lead-owner" placeholder={copy.placeholders.owner} {...register("ownerId")} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="lead-notes">Notas iniciais</Label>
-            <Textarea id="lead-notes" rows={3} placeholder="Detalhes ou contexto" {...register("notes")} />
+            <Label htmlFor="lead-notes">{copy.fields.notes}</Label>
+            <Textarea
+              id="lead-notes"
+              rows={3}
+              placeholder={copy.placeholders.notes}
+              {...register("notes")}
+            />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="lead-stage">Etapa</Label>
+            <Label htmlFor="lead-stage">{copy.fields.stage}</Label>
             <select
               id="lead-stage"
               {...register("stageId")}
@@ -167,10 +197,10 @@ export function NewLeadDialog({ open, onOpenChange, stages, onCreate }: NewLeadD
 
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancelar
+              {copy.cancel}
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Salvando..." : "Salvar lead"}
+              {isSubmitting ? copy.submitting : copy.submit}
             </Button>
           </DialogFooter>
         </form>

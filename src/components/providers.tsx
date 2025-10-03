@@ -5,6 +5,9 @@ import { ReactNode, useState } from "react";
 import { SessionProvider } from "next-auth/react";
 import { Toaster } from "sonner";
 
+import { ThemeProvider } from "@/contexts/theme-context";
+import { I18nProvider } from "@/contexts/i18n-context";
+
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
     () =>
@@ -20,10 +23,14 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <SessionProvider>
-      <QueryClientProvider client={queryClient}>
-        {children}
-        <Toaster position="top-right" richColors />
-      </QueryClientProvider>
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <I18nProvider>
+            {children}
+            <Toaster position="top-right" richColors />
+          </I18nProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
     </SessionProvider>
   );
 }

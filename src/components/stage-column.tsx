@@ -7,6 +7,8 @@ import { LeadSummary, Stage } from "@/types";
 import { LeadCard } from "./lead-card";
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/contexts/i18n-context";
+import { formatCurrency } from "@/lib/format";
 
 export type StageColumnProps = {
   stage: Stage;
@@ -16,21 +18,38 @@ export type StageColumnProps = {
 };
 
 export function StageColumn({ stage, leads, onOpenLead, onAddActivity }: StageColumnProps) {
+  const { messages, locale } = useTranslation();
+  const { crm } = messages;
+
+  const positiveStyle = {
+    container: "bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-950/70 border-emerald-200/70",
+    badge: "bg-emerald-100 text-emerald-700",
+  } as const;
+
+  const negativeStyle = {
+    container: "bg-rose-50 dark:bg-rose-950/30 dark:border-rose-950/70 border-rose-200/70",
+    badge: "bg-rose-100 text-rose-700",
+  } as const;
+
   const styleMap: Record<string, { container: string; badge: string }> = {
-    Ganho: {
-      container: "bg-emerald-50 border-emerald-200/70",
-      badge: "bg-emerald-100 text-emerald-700",
-    },
-    Perda: {
-      container: "bg-rose-50 border-rose-200/70",
-      badge: "bg-rose-100 text-rose-700",
-    },
+    Ganho: positiveStyle,
+    Won: positiveStyle,
+    Ganado: positiveStyle,
+    Perda: negativeStyle,
+    Lost: negativeStyle,
+    Perdido: negativeStyle,
   };
 
   const stageStyle = styleMap[stage.name] ?? {
     container: "bg-muted/30 border-transparent",
     badge: "",
   };
+
+  const leadBadgeLabel = crm.stageColumn.leadCount.replace("{{count}}", String(leads.length));
+  const totalValueCents = leads.reduce((total, lead) => total + (lead.valueCents ?? 0), 0);
+  const formattedTotal = formatCurrency(totalValueCents, { locale });
+  const totalLabel = crm.stageColumn.totalValue.replace("{{total}}", formattedTotal);
+  const isLossStage = ["Perda", "Lost", "Perdido"].includes(stage.name);
 
   return (
     <div
@@ -44,12 +63,10 @@ export function StageColumn({ stage, leads, onOpenLead, onAddActivity }: StageCo
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
             {stage.name}
           </h3>
-          <Badge
-            className={cn(stageStyle.badge)}
-            variant={stage.name === "Perda" ? "destructive" : "secondary"}
-          >
-            {leads.length} leads
+          <Badge className={cn(stageStyle.badge)} variant={isLossStage ? "destructive" : "secondary"}>
+            {leadBadgeLabel}
           </Badge>
+          <p className="mt-1 text-xs font-medium text-muted-foreground">{totalLabel}</p>
         </div>
       </div>
 
@@ -81,7 +98,7 @@ export function StageColumn({ stage, leads, onOpenLead, onAddActivity }: StageCo
             {provided.placeholder}
             {snapshot.isDraggingOver && leads.length === 0 ? (
               <div className="rounded-lg border border-dashed border-primary/50 bg-primary/5 p-4 text-center text-sm text-primary">
-                Solte aqui
+                {crm.stageColumn.dropHere}
               </div>
             ) : null}
           </div>

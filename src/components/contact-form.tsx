@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/contexts/i18n-context";
 
 interface ContactFormProps {
   projectTypes: string[];
@@ -20,6 +21,8 @@ type FormStatus = "idle" | "loading" | "success" | "error";
 export function ContactForm({ projectTypes, budgetRanges, timelineOptions }: ContactFormProps) {
   const [status, setStatus] = useState<FormStatus>("idle");
   const [feedback, setFeedback] = useState<string | null>(null);
+  const { messages } = useTranslation();
+  const copy = messages.common.contactForm;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -42,18 +45,16 @@ export function ContactForm({ projectTypes, budgetRanges, timelineOptions }: Con
       const body = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error(body?.message || "Não foi possível enviar sua mensagem.");
+        throw new Error(body?.message || copy.feedback.error);
       }
 
       setStatus("success");
-      setFeedback(body?.message || "Mensagem enviada com sucesso!");
+      setFeedback(body?.message || copy.feedback.success);
       form.reset();
     } catch (error) {
       console.error("Contact form error", error);
       setStatus("error");
-      setFeedback(
-        error instanceof Error ? error.message : "Não foi possível enviar sua mensagem.",
-      );
+      setFeedback(error instanceof Error ? error.message : copy.feedback.error);
     } finally {
       setTimeout(() => setStatus("idle"), 4000);
     }
@@ -79,22 +80,22 @@ export function ContactForm({ projectTypes, budgetRanges, timelineOptions }: Con
         </div>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField label="Nome" required>
-          <Input name="name" placeholder="Seu nome completo" required />
+        <FormField label={copy.labels.name} required>
+          <Input name="name" placeholder={copy.placeholders.name} required />
         </FormField>
-        <FormField label="Email" required>
-          <Input name="email" type="email" placeholder="seu@email.com" required />
+        <FormField label={copy.labels.email} required>
+          <Input name="email" type="email" placeholder={copy.placeholders.email} required />
         </FormField>
-        <FormField label="Empresa">
-          <Input name="company" placeholder="Nome da sua empresa" />
+        <FormField label={copy.labels.company}>
+          <Input name="company" placeholder={copy.placeholders.company} />
         </FormField>
-        <FormField label="Telefone">
-          <Input name="phone" placeholder="(11) 99999-9999" />
+        <FormField label={copy.labels.phone}>
+          <Input name="phone" placeholder={copy.placeholders.phone} />
         </FormField>
-        <FormField label="Tipo de Projeto" required>
+        <FormField label={copy.labels.projectType} required>
           <Select name="projectType" defaultValue="" required>
             <option value="" disabled>
-              Selecione o tipo
+              {copy.selects.projectType}
             </option>
             {projectTypes.map((option) => (
               <option key={option} value={option}>
@@ -103,10 +104,10 @@ export function ContactForm({ projectTypes, budgetRanges, timelineOptions }: Con
             ))}
           </Select>
         </FormField>
-        <FormField label="Orçamento Previsto">
+        <FormField label={copy.labels.budget}>
           <Select name="budget" defaultValue="">
             <option value="" disabled>
-              Faixa de orçamento
+              {copy.selects.budget}
             </option>
             {budgetRanges.map((option) => (
               <option key={option} value={option}>
@@ -115,10 +116,10 @@ export function ContactForm({ projectTypes, budgetRanges, timelineOptions }: Con
             ))}
           </Select>
         </FormField>
-        <FormField label="Prazo Desejado" className="sm:col-span-2">
+        <FormField label={copy.labels.timeline} className="sm:col-span-2">
           <Select name="timeline" defaultValue="">
             <option value="" disabled>
-              Quando precisa ficar pronto?
+              {copy.selects.timeline}
             </option>
             {timelineOptions.map((option) => (
               <option key={option} value={option}>
@@ -128,15 +129,15 @@ export function ContactForm({ projectTypes, budgetRanges, timelineOptions }: Con
           </Select>
         </FormField>
       </div>
-      <FormField label="Conte-nos sobre seu projeto" required>
+      <FormField label={copy.labels.message} required>
         <Textarea
           name="message"
-          placeholder="Descreva sua ideia, objetivos e qualquer informação relevante..."
+          placeholder={copy.placeholders.message}
           required
         />
       </FormField>
       <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
-        {isLoading ? "Enviando..." : "Enviar Proposta"}
+        {isLoading ? copy.buttons.submitting : copy.buttons.submit}
       </Button>
     </form>
   );

@@ -4,23 +4,22 @@ import * as React from "react";
 import { KanbanSquare, Users, ChartArea } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
-import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Logo } from "./logo";
+import { useTranslation } from "@/contexts/i18n-context";
 
-const defaultNav = [
-  { title: "Funil", url: "/dashboard", icon: KanbanSquare },
-  { title: "Clientes", url: "/clients", icon: Users },
-  { title: "Métricas", url: "/metrics", icon: ChartArea },
-];
+const DEFAULT_NAV = [
+  { key: "funnel", url: "/dashboard", icon: KanbanSquare },
+  { key: "clients", url: "/clients", icon: Users },
+  { key: "metrics", url: "/metrics", icon: ChartArea },
+] as const;
 
 type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
   navItems?: Array<{
@@ -36,7 +35,21 @@ type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
   } | null;
 };
 
-export function AppSidebar({ navItems = defaultNav, user, ...props }: AppSidebarProps) {
+export function AppSidebar({ navItems = [], user: _user, ...props }: AppSidebarProps) {
+  const { messages } = useTranslation();
+  const defaultItems = React.useMemo(
+    () =>
+      DEFAULT_NAV.map((item) => ({
+        title: messages.appShell.navLinks[item.key],
+        url: item.url,
+        icon: item.icon,
+      })),
+    [messages.appShell.navLinks],
+  );
+
+  const resolvedNavItems = navItems.length ? navItems : defaultItems;
+  void _user;
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -45,20 +58,15 @@ export function AppSidebar({ navItems = defaultNav, user, ...props }: AppSidebar
             <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5">
               <a href="/dashboard" className="flex items-center gap-2">
                 <Logo className="!h-5 !w-auto" />
-                <span className="text-base font-semibold">AppSeed CRM</span>
+                <span className="text-base font-semibold">{messages.crm.sidebar.productName}</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={navItems} />
+        <NavMain items={resolvedNavItems} />
       </SidebarContent>
-      {/* {user ? (
-        <SidebarFooter>
-          <NavUser user={user} />
-        </SidebarFooter>
-      ) : null} */}
     </Sidebar>
   );
 }

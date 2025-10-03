@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -17,14 +17,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { useTranslation } from "@/contexts/i18n-context";
 
-const formSchema = z.object({
-  type: z.enum(["note", "call", "email", "whatsapp", "task"]),
-  content: z.string().min(1, "Informe o conteúdo"),
-  dueAt: z.string().optional(),
-});
-
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = {
+  type: "note" | "call" | "email" | "whatsapp" | "task";
+  content: string;
+  dueAt?: string;
+};
 
 type ActivityDialogProps = {
   lead: LeadSummary | null;
@@ -43,6 +42,20 @@ export function ActivityDialog({
   initialType = "note",
   initialContent = "",
 }: ActivityDialogProps) {
+  const { messages } = useTranslation();
+  const { crm } = messages;
+  const copy = crm.dialogs.activity;
+
+  const formSchema = useMemo(
+    () =>
+      z.object({
+        type: z.enum(["note", "call", "email", "whatsapp", "task"]),
+        content: z.string().min(1, copy.validation.contentRequired),
+        dueAt: z.string().optional(),
+      }),
+    [copy.validation.contentRequired],
+  );
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -61,6 +74,10 @@ export function ActivityDialog({
   } = form;
 
   const type = watch("type");
+
+  const dialogTitle = lead
+    ? copy.titleWithLead.replace("{{lead}}", lead.name)
+    : copy.title;
 
   useEffect(() => {
     if (open) {
@@ -85,29 +102,29 @@ export function ActivityDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Nova atividade {lead ? `para ${lead.name}` : ""}</DialogTitle>
+          <DialogTitle>{dialogTitle}</DialogTitle>
         </DialogHeader>
         <form className="space-y-4" onSubmit={onSubmit}>
           <div className="space-y-2">
-            <Label htmlFor="activity-type">Tipo</Label>
+            <Label htmlFor="activity-type">{copy.fields.type}</Label>
             <select
               id="activity-type"
               {...register("type")}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <option value="note">Nota</option>
-              <option value="call">Ligação</option>
-              <option value="email">E-mail</option>
-              <option value="whatsapp">WhatsApp</option>
-              <option value="task">Tarefa</option>
+              <option value="note">{copy.types.note}</option>
+              <option value="call">{copy.types.call}</option>
+              <option value="email">{copy.types.email}</option>
+              <option value="whatsapp">{copy.types.whatsapp}</option>
+              <option value="task">{copy.types.task}</option>
             </select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="activity-content">Conteúdo</Label>
+            <Label htmlFor="activity-content">{copy.fields.content}</Label>
             <Textarea
               id="activity-content"
               rows={4}
-              placeholder="Descreva a atividade"
+              placeholder={copy.placeholders.content}
               {...register("content")}
             />
             {errors.content ? (
@@ -116,7 +133,7 @@ export function ActivityDialog({
           </div>
           {type === "task" ? (
             <div className="space-y-2">
-              <Label htmlFor="activity-due">Vencimento</Label>
+              <Label htmlFor="activity-due">{copy.fields.dueAt}</Label>
               <Input
                 id="activity-due"
                 type="datetime-local"
@@ -131,10 +148,10 @@ export function ActivityDialog({
 
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancelar
+              {copy.cancel}
             </Button>
             <Button type="submit" disabled={isSubmitting || !lead}>
-              {isSubmitting ? "Salvando..." : "Salvar"}
+              {isSubmitting ? copy.submitting : copy.submit}
             </Button>
           </DialogFooter>
         </form>

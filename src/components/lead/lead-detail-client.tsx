@@ -31,6 +31,7 @@ import { apiFetch } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatDate } from "@/lib/format";
 import type { Activity, LeadDetail, Stage } from "@/types";
+import { useTranslation } from "@/contexts/i18n-context";
 
 const leadFormSchema = z.object({
   name: z.string().min(1, "Informe o nome"),
@@ -71,6 +72,10 @@ export function LeadDetailClient({ leadId }: Props) {
   const [activityDialogOpen, setActivityDialogOpen] = useState(false);
   const [activityType, setActivityType] = useState<Activity["type"]>("note");
   const [activityPrefill, setActivityPrefill] = useState<string>("");
+  const { messages, locale } = useTranslation();
+  const { crm } = messages;
+  const leadCopy = crm.leadDetail;
+  const activityCopy = crm.dialogs.activity;
 
   const leadQuery = useQuery({
     queryKey: ["lead", leadId],
@@ -97,7 +102,7 @@ export function LeadDetailClient({ leadId }: Props) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lead", leadId] });
       queryClient.invalidateQueries({ queryKey: ["leads"] });
-      toast.success("Lead atualizado");
+      toast.success(crm.toasts.leadUpdated);
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -111,7 +116,7 @@ export function LeadDetailClient({ leadId }: Props) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lead", leadId] });
       queryClient.invalidateQueries({ queryKey: ["leads"] });
-      toast.success("Atividade registrada");
+      toast.success(crm.toasts.activityLogged);
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -125,7 +130,7 @@ export function LeadDetailClient({ leadId }: Props) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lead", leadId] });
       queryClient.invalidateQueries({ queryKey: ["leads"] });
-      toast.success("Tarefa concluída");
+      toast.success(crm.toasts.taskCompleted);
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -189,14 +194,20 @@ export function LeadDetailClient({ leadId }: Props) {
     }
 
     return [
-      { label: "Etapa", value: lead.stage?.name ?? "Sem etapa" },
-      { label: "Valor", value: formatCurrency(lead.valueCents) },
-      { label: "Criado em", value: formatDate(lead.createdAt) },
-      { label: "Responsável", value: lead.ownerId ?? "—" },
-      { label: "Tarefas atrasadas", value: lead.overdueTasksCount ? String(lead.overdueTasksCount) : "0" },
-      { label: "Próxima tarefa", value: lead.nextDueAt ? formatDate(lead.nextDueAt) : "—" },
+      { label: leadCopy.metrics.stage, value: lead.stage?.name ?? crm.statuses.noStage },
+      { label: leadCopy.metrics.value, value: formatCurrency(lead.valueCents, { locale }) },
+      { label: leadCopy.metrics.createdAt, value: formatDate(lead.createdAt, { locale }) },
+      { label: leadCopy.metrics.owner, value: lead.ownerId ?? crm.statuses.none },
+      {
+        label: leadCopy.metrics.overdueTasks,
+        value: lead.overdueTasksCount ? String(lead.overdueTasksCount) : "0",
+      },
+      {
+        label: leadCopy.metrics.nextTask,
+        value: lead.nextDueAt ? formatDate(lead.nextDueAt, { locale }) : crm.statuses.none,
+      },
     ];
-  }, [lead]);
+  }, [lead, leadCopy, crm.statuses, locale]);
 
   const sortedActivities = useMemo(() => {
     if (!lead?.activities) {
@@ -238,6 +249,11 @@ export function LeadDetailClient({ leadId }: Props) {
   }
 
   const currentStageId = lead.stage?.id ?? stagesQuery.data?.[0]?.id ?? "";
+  const overdueBadgeLabel = leadCopy.badges.overdue.replace(
+    "{{count}}",
+    String(lead.overdueTasksCount ?? 0),
+  );
+  const dueSoonLabel = leadCopy.badges.dueSoon;
 
   return (
     <div className="grid gap-6 md:grid-cols-[2fr,1fr]">
@@ -251,11 +267,11 @@ export function LeadDetailClient({ leadId }: Props) {
             {lead.hasOverdueTasks ? (
               <Badge variant="destructive" className="gap-1">
                 <AlertTriangle className="h-3.5 w-3.5" />
-                {lead.overdueTasksCount ?? 0} atrasada(s)
+                {overdueBadgeLabel}
               </Badge>
             ) : dueSoon ? (
               <Badge variant="warning" className="gap-1">
-                <Clock className="h-3.5 w-3.5" /> Atenção: vencerá em breve
+                <Clock className="h-3.5 w-3.5" /> {dueSoonLabel}
               </Badge>
             ) : null}
           </CardHeader>
@@ -263,14 +279,14 @@ export function LeadDetailClient({ leadId }: Props) {
             <form className="space-y-4" onSubmit={onSubmit}>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="lead-name">Nome</Label>
+                  <Label htmlFor="lead-name">{leadCopy.form.name}</Label>
                   <Input id="lead-name" {...register("name")} />
                   {formState.errors.name ? (
                     <p className="text-xs text-destructive">{formState.errors.name.message}</p>
                   ) : null}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lead-email">Email</Label>
+                  <Label htmlFor="lead-email">{leadCopy.form.email}</Label>
                   <Input id="lead-email" type="email" {...register("email")} />
                   {formState.errors.email ? (
                     <p className="text-xs text-destructive">{formState.errors.email.message}</p>
@@ -280,26 +296,26 @@ export function LeadDetailClient({ leadId }: Props) {
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div className="space-y-2">
-                  <Label htmlFor="lead-phone">Telefone</Label>
+                  <Label htmlFor="lead-phone">{leadCopy.form.phone}</Label>
                   <Input id="lead-phone" {...register("phone")} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lead-company">Empresa</Label>
+                  <Label htmlFor="lead-company">{leadCopy.form.company}</Label>
                   <Input id="lead-company" {...register("company")} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lead-value">Valor (R$)</Label>
+                  <Label htmlFor="lead-value">{leadCopy.form.value}</Label>
                   <Input id="lead-value" {...register("value")} />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="lead-owner">Responsável</Label>
+                  <Label htmlFor="lead-owner">{leadCopy.form.owner}</Label>
                   <Input id="lead-owner" {...register("ownerId")} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lead-stage">Mover etapa</Label>
+                  <Label htmlFor="lead-stage">{leadCopy.form.moveStage}</Label>
                   <select
                     id="lead-stage"
                     className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -316,13 +332,13 @@ export function LeadDetailClient({ leadId }: Props) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="lead-notes">Adicionar nota rápida</Label>
+                <Label htmlFor="lead-notes">{leadCopy.form.quickNote}</Label>
                 <Textarea id="lead-notes" rows={3} {...register("notes")} />
               </div>
 
               <div className="flex items-center gap-2">
                 <Button type="submit" disabled={updateLeadMutation.isPending}>
-                  {updateLeadMutation.isPending ? "Salvando..." : "Salvar alterações"}
+                  {updateLeadMutation.isPending ? leadCopy.buttons.saving : leadCopy.buttons.save}
                 </Button>
                 <Button
                   type="button"
@@ -331,7 +347,7 @@ export function LeadDetailClient({ leadId }: Props) {
                     reset();
                   }}
                 >
-                  Cancelar
+                  {leadCopy.buttons.cancel}
                 </Button>
               </div>
             </form>
@@ -340,7 +356,7 @@ export function LeadDetailClient({ leadId }: Props) {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Timeline de atividades</CardTitle>
+            <CardTitle>{leadCopy.timeline.title}</CardTitle>
             <div className="flex items-center gap-2">
               <Button
                 size="sm"
@@ -352,7 +368,7 @@ export function LeadDetailClient({ leadId }: Props) {
                 }}
                 disabled={!lead.email}
               >
-                <Mail className="mr-2 h-4 w-4" /> Enviar e-mail
+                <Mail className="mr-2 h-4 w-4" /> {leadCopy.buttons.sendEmail}
               </Button>
               <Button
                 size="sm"
@@ -362,13 +378,13 @@ export function LeadDetailClient({ leadId }: Props) {
                   setActivityDialogOpen(true);
                 }}
               >
-                + Atividade
+                {leadCopy.buttons.addActivity}
               </Button>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {sortedActivities.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sem atividades registradas.</p>
+              <p className="text-sm text-muted-foreground">{leadCopy.timeline.empty}</p>
             ) : (
               <ul className="space-y-4">
                 {sortedActivities.map((activity) => {
@@ -382,6 +398,17 @@ export function LeadDetailClient({ leadId }: Props) {
                       dueAt.getTime() > now &&
                       dueAt.getTime() - now <= 60 * 60 * 1000,
                   );
+                  const formattedCreatedAt = formatDate(activity.createdAt, { locale });
+                  const formattedDueAt = activity.dueAt
+                    ? formatDate(activity.dueAt, { locale })
+                    : null;
+                  const dueBadgeText = formattedDueAt
+                    ? isOverdue
+                      ? `${crm.statuses.overdue} ${formattedDueAt}`
+                      : isDueSoon
+                        ? `${crm.statuses.attention} ${formattedDueAt}`
+                        : crm.statuses.dueOn.replace("{{date}}", formattedDueAt)
+                    : "";
 
                   return (
                     <li
@@ -396,14 +423,13 @@ export function LeadDetailClient({ leadId }: Props) {
                     <div className="flex w-full flex-col gap-2">
                       <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
                         <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                          <span className="capitalize">{activity.type}</span>
-                          <span className="text-xs text-muted-foreground">{formatDate(activity.createdAt)}</span>
+                          <span>{activityCopy.types[activity.type]}</span>
+                          <span className="text-xs text-muted-foreground">{formattedCreatedAt}</span>
                         </div>
                         {isTask && activity.dueAt ? (
                           <div className="flex items-center gap-2">
                             <Badge variant={isOverdue ? "destructive" : isDueSoon ? "warning" : "secondary"}>
-                              {isOverdue ? "Atrasado" : isDueSoon ? "Atenção" : "Vence em"}{" "}
-                              {formatDate(activity.dueAt)}
+                              {dueBadgeText}
                             </Badge>
                             <Button
                               size="sm"
@@ -411,7 +437,7 @@ export function LeadDetailClient({ leadId }: Props) {
                               onClick={() => handleTaskDone(activity)}
                               disabled={completeTaskMutation.isPending}
                             >
-                              <CheckCircle2 className="mr-1 h-4 w-4" /> Concluir
+                              <CheckCircle2 className="mr-1 h-4 w-4" /> {crm.buttons.markDone}
                             </Button>
                           </div>
                         ) : null}
@@ -437,7 +463,7 @@ export function LeadDetailClient({ leadId }: Props) {
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Resumo</CardTitle>
+            <CardTitle>{leadCopy.summaryTitle}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {metrics.map((metric) => (
@@ -451,10 +477,10 @@ export function LeadDetailClient({ leadId }: Props) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Pipeline</CardTitle>
+            <CardTitle>{leadCopy.pipelineTitle}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">Etapas do funil:</p>
+            <p className="text-sm text-muted-foreground">{leadCopy.pipelineDescription}</p>
             <ol className="space-y-2">
             {stagesQuery.data?.map((stage) => {
                 const isCurrent = stage.id === lead.stage?.id;

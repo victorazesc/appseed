@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch } from "@/lib/api-client";
 import type { LeadSummary, Stage } from "@/types";
+import { useTranslation } from "@/contexts/i18n-context";
 
 type CreateLeadInput = {
   name: string;
@@ -40,6 +41,8 @@ const leadsKey = (params: { q?: string; ownerId?: string }) => ["leads", params]
 export default function DashboardPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { messages } = useTranslation();
+  const { crm } = messages;
   const [search, setSearch] = useState("");
   const [ownerFilter, setOwnerFilter] = useState("");
   const [leadDialogOpen, setLeadDialogOpen] = useState(false);
@@ -77,7 +80,7 @@ export default function DashboardPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
-      toast.success("Lead criado com sucesso");
+      toast.success(crm.toasts.leadCreated);
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -90,7 +93,7 @@ export default function DashboardPage() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
-      toast.success("Atividade registrada");
+      toast.success(crm.toasts.activityLogged);
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -176,25 +179,31 @@ export default function DashboardPage() {
   };
 
   const isLoading = stagesQuery.isLoading || leadsQuery.isLoading;
+  const leadsBadgeLabel = crm.dashboard.stats.leads.replace(
+    "{{count}}",
+    String(leadsQuery.data?.length ?? 0),
+  );
+  const stagesBadgeLabel = crm.dashboard.stats.stages.replace(
+    "{{count}}",
+    String(stagesQuery.data?.length ?? 0),
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 rounded-xl border bg-card p-6 shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">Funil de Vendas</h1>
-            <p className="text-sm text-muted-foreground">
-              Acompanhe leads, atividades e organize o pipeline.
-            </p>
+            <h1 className="text-2xl font-semibold text-foreground">{crm.dashboard.title}</h1>
+            <p className="text-sm text-muted-foreground">{crm.dashboard.subtitle}</p>
           </div>
-          <Button onClick={() => setLeadDialogOpen(true)}>+ Novo Lead</Button>
+          <Button onClick={() => setLeadDialogOpen(true)}>{crm.buttons.newLead}</Button>
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Buscar por nome ou email"
+              placeholder={crm.placeholders.searchLeads}
               className="pl-9"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -206,7 +215,7 @@ export default function DashboardPage() {
               onChange={(event) => setOwnerFilter(event.target.value)}
               className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <option value="">Todos os responsáveis</option>
+              <option value="">{crm.dashboard.ownerFilterAll}</option>
               {owners.map((owner) => (
                 <option key={owner} value={owner}>
                   {owner}
@@ -217,8 +226,8 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <Badge variant="secondary">Leads: {leadsQuery.data?.length ?? 0}</Badge>
-          <Badge variant="secondary">Etapas: {stagesQuery.data?.length ?? 0}</Badge>
+          <Badge variant="secondary">{leadsBadgeLabel}</Badge>
+          <Badge variant="secondary">{stagesBadgeLabel}</Badge>
         </div>
       </div>
 

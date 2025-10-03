@@ -17,12 +17,15 @@ import {
   SidebarInset,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { useTranslation } from "@/contexts/i18n-context";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const NAV_LINKS = [
-  { title: "Funil", url: "/dashboard", icon: KanbanSquare },
-  { title: "Clientes", url: "/clients", icon: Users },
-  { title: "Métricas", url: "/metrics", icon: ChartArea },
-];
+  { key: "funnel", url: "/dashboard", icon: KanbanSquare },
+  { key: "clients", url: "/clients", icon: Users },
+  { key: "metrics", url: "/metrics", icon: ChartArea },
+] as const;
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -34,14 +37,19 @@ type AppShellProps = {
 
 export function AppShell({ children, user }: AppShellProps) {
   const pathname = usePathname();
+  const { messages } = useTranslation();
+  const { common } = messages;
+
+  const navLabels = messages.appShell.navLinks;
 
   const navItems = useMemo(
     () =>
       NAV_LINKS.map((item) => ({
         ...item,
+        title: navLabels[item.key],
         isActive: pathname === item.url,
       })),
-    [pathname],
+    [pathname, navLabels],
   );
 
   const { data: notificationLeads } = useQuery({
@@ -68,10 +76,16 @@ export function AppShell({ children, user }: AppShellProps) {
             <div className="flex flex-1 items-center justify-between">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <span className="hidden text-base font-semibold text-foreground sm:inline">
-                  {navItems.find((item) => item.isActive)?.title ?? "Painel"}
+                  {navItems.find((item) => item.isActive)?.title ?? messages.appShell.defaultTitle}
                 </span>
               </div>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <LanguageSwitcher className="hidden md:flex" />
+                <ThemeToggle className="hidden md:flex" />
+                <div className="flex items-center gap-2 md:hidden">
+                  <LanguageSwitcher />
+                  <ThemeToggle />
+                </div>
                 {user ? (
                   <>
                     <NotificationsMenu leads={notificationLeads} />
@@ -79,7 +93,7 @@ export function AppShell({ children, user }: AppShellProps) {
                   </>
                 ) : (
                   <Button asChild variant="outline" size="sm">
-                    <Link href="/signin">Entrar</Link>
+                    <Link href="/signin">{common.actions.signIn}</Link>
                   </Button>
                 )}
               </div>

@@ -11,12 +11,16 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch } from "@/lib/api-client";
 import type { MetricsOverview } from "@/types";
+import { useTranslation } from "@/contexts/i18n-context";
 
 const buildKey = (params: { from?: string; to?: string }) => ["metrics", params] as const;
 
 export default function MetricsPage() {
   const [from, setFrom] = useState<string>("");
   const [to, setTo] = useState<string>("");
+  const { messages } = useTranslation();
+  const { crm } = messages;
+  const copy = crm.metrics;
 
   const metricsQuery = useQuery({
     queryKey: buildKey({ from: from || undefined, to: to || undefined }),
@@ -49,13 +53,13 @@ export default function MetricsPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Métricas do funil</CardTitle>
+          <CardTitle>{copy.title}</CardTitle>
         </CardHeader>
         <CardContent>
           <form className="grid grid-cols-1 gap-4 md:grid-cols-4" onSubmit={handleApply}>
             <div className="space-y-2">
               <label className="text-xs font-medium text-muted-foreground" htmlFor="metrics-from">
-                De
+                {copy.filters.from}
               </label>
               <Input
                 id="metrics-from"
@@ -66,7 +70,7 @@ export default function MetricsPage() {
             </div>
             <div className="space-y-2">
               <label className="text-xs font-medium text-muted-foreground" htmlFor="metrics-to">
-                Até
+                {copy.filters.to}
               </label>
               <Input
                 id="metrics-to"
@@ -77,7 +81,7 @@ export default function MetricsPage() {
             </div>
             <div className="flex items-end">
               <Button type="submit" disabled={metricsQuery.isFetching}>
-                {metricsQuery.isFetching ? "Atualizando..." : "Aplicar"}
+                {metricsQuery.isFetching ? copy.filters.applying : copy.filters.apply}
               </Button>
             </div>
             <div className="flex items-end">
@@ -90,7 +94,7 @@ export default function MetricsPage() {
                   metricsQuery.refetch();
                 }}
               >
-                Limpar
+                {copy.filters.clear}
               </Button>
             </div>
           </form>
@@ -120,7 +124,7 @@ export default function MetricsPage() {
           <div className="grid gap-4 md:grid-cols-3">
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm text-muted-foreground">Leads por etapa</CardTitle>
+                <CardTitle className="text-sm text-muted-foreground">{copy.cards.leadsPerStage}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {Object.entries(metricsQuery.data.leads_per_stage).map(([stage, value]) => (
@@ -133,31 +137,34 @@ export default function MetricsPage() {
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm text-muted-foreground">Taxa de conversão</CardTitle>
+                <CardTitle className="text-sm text-muted-foreground">{copy.cards.conversion}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-3xl font-semibold text-foreground">
                   {metricsQuery.data.conversion_rate_pct.toFixed(1)}%
                 </p>
-                <p className="text-xs text-muted-foreground">{'Até a etapa "Fechamento"'}</p>
+                <p className="text-xs text-muted-foreground">{copy.cards.conversionHint}</p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm text-muted-foreground">Tempo médio no funil</CardTitle>
+                <CardTitle className="text-sm text-muted-foreground">{copy.cards.timeInPipeline}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-3xl font-semibold text-foreground">
-                  {metricsQuery.data.avg_time_days.toFixed(1)} dias
+                  {copy.cards.timeUnit.replace(
+                    "{{days}}",
+                    metricsQuery.data.avg_time_days.toFixed(1),
+                  )}
                 </p>
-                <p className="text-xs text-muted-foreground">Entre criação e hoje</p>
+                <p className="text-xs text-muted-foreground">{copy.cards.timeHint}</p>
               </CardContent>
             </Card>
           </div>
 
           <Card>
             <CardHeader>
-              <CardTitle>Distribuição por etapa</CardTitle>
+              <CardTitle>{copy.chart.distribution}</CardTitle>
             </CardHeader>
             <CardContent className="h-72">
               <ResponsiveContainer width="100%" height="100%">
@@ -174,15 +181,15 @@ export default function MetricsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Tabela detalhada</CardTitle>
+              <CardTitle>{copy.table.title}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-xs uppercase text-muted-foreground">
-                      <th className="pb-2">Etapa</th>
-                      <th className="pb-2">Total</th>
+                      <th className="pb-2">{copy.table.stage}</th>
+                      <th className="pb-2">{copy.table.total}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -199,7 +206,7 @@ export default function MetricsPage() {
           </Card>
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">Nenhuma métrica disponível.</p>
+        <p className="text-sm text-muted-foreground">{copy.empty}</p>
       )}
     </div>
   );
