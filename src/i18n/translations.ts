@@ -1387,8 +1387,8 @@ export const translations: Record<Language, {
           subtitle: "Choose the channel that works best for you.",
         },
         contactDetails: [
-          { label: "Email", value: "contact@appseed.com" },
-          { label: "Phone", value: "+1 (555) 555-1234" },
+          { label: "Email", value: "contato@appseed.com.br" },
+          { label: "Phone", value: "+55 (47) 9 9671-8866" },
           { label: "Location", value: "Remote" },
         ],
         differentiatorsCard: {
@@ -2030,8 +2030,8 @@ export const translations: Record<Language, {
           subtitle: "Elige el canal que prefieras para hablar con nosotros.",
         },
         contactDetails: [
-          { label: "Email", value: "contacto@appseed.com" },
-          { label: "Teléfono", value: "+54 11 5555-1234" },
+          { label: "Email", value: "contato@appseed.com.br" },
+          { label: "Teléfono", value: "+55 47 9 9671-8866" },
           { label: "Ubicación", value: "Remoto" },
         ],
         differentiatorsCard: {
