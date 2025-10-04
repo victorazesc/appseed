@@ -7,6 +7,7 @@ import { Toaster } from "sonner";
 
 import { ThemeProvider } from "@/contexts/theme-context";
 import { I18nProvider } from "@/contexts/i18n-context";
+import { PipelineProvider } from "@/contexts/pipeline-context";
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -26,8 +27,10 @@ export function Providers({ children }: { children: ReactNode }) {
       <ThemeProvider>
         <QueryClientProvider client={queryClient}>
           <I18nProvider>
-            {children}
-            <Toaster position="top-right" richColors />
+            <PipelineProvider>
+              {children}
+              <Toaster position="top-right" richColors />
+            </PipelineProvider>
           </I18nProvider>
         </QueryClientProvider>
       </ThemeProvider>

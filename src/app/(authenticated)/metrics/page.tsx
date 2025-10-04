@@ -10,10 +10,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch } from "@/lib/api-client";
+import { formatCurrency } from "@/lib/format";
 import type { MetricsOverview } from "@/types";
 import { useTranslation } from "@/contexts/i18n-context";
+import { useActivePipeline } from "@/contexts/pipeline-context";
 
-const buildKey = (params: { from?: string; to?: string }) => ["metrics", params] as const;
+const buildKey = (params: { from?: string; to?: string; pipelineId?: string }) => ["metrics", params] as const;
 
 export default function MetricsPage() {
   const [from, setFrom] = useState<string>("");
@@ -21,27 +23,34 @@ export default function MetricsPage() {
   const { messages } = useTranslation();
   const { crm } = messages;
   const copy = crm.metrics;
+  const { activePipeline, activePipelineId } = useActivePipeline();
 
   const metricsQuery = useQuery({
-    queryKey: buildKey({ from: from || undefined, to: to || undefined }),
+    queryKey: buildKey({ from: from || undefined, to: to || undefined, pipelineId: activePipelineId ?? undefined }),
     queryFn: async () => {
+      if (!activePipelineId) return null;
       const params = new URLSearchParams();
+      params.set("pipelineId", activePipelineId);
       if (from) params.set("from", new Date(from).toISOString());
       if (to) params.set("to", new Date(to).toISOString());
       const qs = params.toString();
-      const data = await apiFetch<MetricsOverview>(
-        qs ? `/api/metrics/overview?${qs}` : `/api/metrics/overview`,
-      );
+      const data = await apiFetch<MetricsOverview>(`/api/metrics/overview?${qs}`);
       return data;
     },
+    enabled: Boolean(activePipelineId),
   });
 
   const chartData = useMemo(() => {
     if (!metricsQuery.data) return [];
-    return Object.entries(metricsQuery.data.leads_per_stage).map(([stage, value]) => ({
-      stage,
-      value,
+    return metricsQuery.data.leads_per_stage.map((entry) => ({
+      stage: entry.stageName,
+      value: entry.count,
     }));
+  }, [metricsQuery.data]);
+
+  const totalValue = useMemo(() => {
+    if (!metricsQuery.data) return 0;
+    return metricsQuery.data.leads_per_stage.reduce((acc, current) => acc + current.valueCents, 0);
   }, [metricsQuery.data]);
 
   const handleApply = (event: React.FormEvent<HTMLFormElement>) => {
@@ -66,6 +75,7 @@ export default function MetricsPage() {
                 type="date"
                 value={from}
                 onChange={(event) => setFrom(event.target.value)}
+                disabled={!activePipelineId}
               />
             </div>
             <div className="space-y-2">
@@ -77,10 +87,11 @@ export default function MetricsPage() {
                 type="date"
                 value={to}
                 onChange={(event) => setTo(event.target.value)}
+                disabled={!activePipelineId}
               />
             </div>
             <div className="flex items-end">
-              <Button type="submit" disabled={metricsQuery.isFetching}>
+              <Button type="submit" disabled={metricsQuery.isFetching || !activePipelineId}>
                 {metricsQuery.isFetching ? copy.filters.applying : copy.filters.apply}
               </Button>
             </div>
@@ -93,6 +104,7 @@ export default function MetricsPage() {
                   setTo("");
                   metricsQuery.refetch();
                 }}
+                disabled={!activePipelineId}
               >
                 {copy.filters.clear}
               </Button>
@@ -101,7 +113,11 @@ export default function MetricsPage() {
         </CardContent>
       </Card>
 
-      {metricsQuery.isLoading ? (
+      {!activePipelineId ? (
+        <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center text-sm text-muted-foreground">
+          {crm.dashboard.emptyPipelines.description}
+        </div>
+      ) : metricsQuery.isLoading ? (
         <div className="grid gap-6 md:grid-cols-3">
           {Array.from({ length: 3 }).map((_, index) => (
             <Card key={index}>
@@ -119,6 +135,8 @@ export default function MetricsPage() {
             </CardContent>
           </Card>
         </div>
+      ) : metricsQuery.isError ? (
+        <p className="text-sm text-destructive">{copy.empty}</p>
       ) : metricsQuery.data ? (
         <div className="space-y-6">
           <div className="grid gap-4 md:grid-cols-3">
@@ -127,10 +145,10 @@ export default function MetricsPage() {
                 <CardTitle className="text-sm text-muted-foreground">{copy.cards.leadsPerStage}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {Object.entries(metricsQuery.data.leads_per_stage).map(([stage, value]) => (
-                  <div key={stage} className="flex items-center justify-between text-sm">
-                    <span>{stage}</span>
-                    <Badge variant="secondary">{value}</Badge>
+                {metricsQuery.data.leads_per_stage.map((entry) => (
+                  <div key={entry.stageId} className="flex items-center justify-between text-sm">
+                    <span>{entry.stageName}</span>
+                    <Badge variant="secondary">{entry.count}</Badge>
                   </div>
                 ))}
               </CardContent>
@@ -173,7 +191,13 @@ export default function MetricsPage() {
                   <XAxis dataKey="stage" tickLine={false} axisLine={false} />
                   <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
                   <Tooltip cursor={{ strokeDasharray: "3 3" }} />
-                  <Area type="monotone" dataKey="value" stroke="#4ade80" fill="#4ade80" fillOpacity={0.25} />
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke={activePipeline?.color ?? "#16A34A"}
+                    fill={activePipeline?.color ?? "#16A34A"}
+                    fillOpacity={0.25}
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             </CardContent>
@@ -190,17 +214,24 @@ export default function MetricsPage() {
                     <tr className="text-left text-xs uppercase text-muted-foreground">
                       <th className="pb-2">{copy.table.stage}</th>
                       <th className="pb-2">{copy.table.total}</th>
+                      <th className="pb-2 text-right">{copy.table.value}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {Object.entries(metricsQuery.data.leads_per_stage).map(([stage, value]) => (
-                      <tr key={stage} className="border-t text-sm">
-                        <td className="py-2">{stage}</td>
-                        <td className="py-2">{value}</td>
+                    {metricsQuery.data.leads_per_stage.map((entry) => (
+                      <tr key={entry.stageId} className="border-t text-sm">
+                        <td className="py-2">{entry.stageName}</td>
+                        <td className="py-2">{entry.count}</td>
+                        <td className="py-2 text-right">{formatCurrency(entry.valueCents)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+              </div>
+              <div className="mt-4 flex items-center justify-end text-sm text-muted-foreground">
+                <span>
+                  Total: <strong className="text-foreground">{formatCurrency(totalValue)}</strong>
+                </span>
               </div>
             </CardContent>
           </Card>

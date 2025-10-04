@@ -17,6 +17,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch } from "@/lib/api-client";
 import type { LeadSummary, Stage } from "@/types";
 import { useTranslation } from "@/contexts/i18n-context";
+import { useActivePipeline, usePipelines } from "@/contexts/pipeline-context";
+import { LeadTransitionDialog } from "@/components/lead/lead-transition-dialog";
+
+const leadsKey = (params: { q?: string; ownerId?: string; pipelineId?: string }) => ["leads", params] as const;
 
 type CreateLeadInput = {
   name: string;
@@ -36,45 +40,48 @@ type ActivityInput = {
   dueAt?: string;
 };
 
-const leadsKey = (params: { q?: string; ownerId?: string }) => ["leads", params] as const;
-
 export default function DashboardPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { messages } = useTranslation();
   const { crm } = messages;
+  const { pipelines, isLoading: isPipelinesLoading } = usePipelines();
+  const { activePipeline, activePipelineId } = useActivePipeline();
   const [search, setSearch] = useState("");
   const [ownerFilter, setOwnerFilter] = useState("");
   const [leadDialogOpen, setLeadDialogOpen] = useState(false);
   const [activityLead, setActivityLead] = useState<LeadSummary | null>(null);
+  const [transitionLead, setTransitionLead] = useState<LeadSummary | null>(null);
+  const [transitionOpen, setTransitionOpen] = useState(false);
 
-  const stagesQuery = useQuery({
-    queryKey: ["stages"],
-    queryFn: async () => {
-      const data = await apiFetch<{ stages: Stage[] }>("/api/stages");
-      return data.stages.sort((a, b) => a.position - b.position);
-    },
-  });
+  const pipelineStages = useMemo(() => {
+    const stages = activePipeline?.stages ?? [];
+    return [...stages].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+  }, [activePipeline?.stages]);
 
   const leadsQuery = useQuery({
-    queryKey: leadsKey({ q: search || undefined, ownerId: ownerFilter || undefined }),
+    queryKey: leadsKey({
+      q: search || undefined,
+      ownerId: ownerFilter || undefined,
+      pipelineId: activePipelineId ?? undefined,
+    }),
     queryFn: async () => {
+      if (!activePipelineId) return [] as LeadSummary[];
       const params = new URLSearchParams();
+      params.set("pipelineId", activePipelineId);
       if (search) params.set("q", search);
       if (ownerFilter) params.set("ownerId", ownerFilter);
-      const qs = params.toString();
-      const data = await apiFetch<{ leads: LeadSummary[] }>(
-        qs ? `/api/leads?${qs}` : "/api/leads",
-      );
+      const data = await apiFetch<{ leads: LeadSummary[] }>(`/api/leads?${params.toString()}`);
       return data.leads;
     },
+    enabled: Boolean(activePipelineId),
   });
 
   const createLeadMutation = useMutation({
     mutationFn: async ({ notes, ...payload }: CreateLeadInput) => {
       const response = await apiFetch<{ lead: LeadSummary }>("/api/leads", {
         method: "POST",
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, pipelineId: activePipelineId }),
       });
       return { ...response, notes };
     },
@@ -102,7 +109,7 @@ export default function DashboardPage() {
     mutationFn: ({ leadId, stageId }: { leadId: string; stageId: string }) =>
       apiFetch<{ lead: LeadSummary }>(`/api/leads/${leadId}`, {
         method: "PATCH",
-        body: JSON.stringify({ stageId }),
+        body: JSON.stringify({ stageId, pipelineId: activePipelineId }),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
@@ -120,7 +127,7 @@ export default function DashboardPage() {
 
   const leadsByStage = useMemo(() => {
     const map = new Map<string, LeadSummary[]>();
-    stagesQuery.data?.forEach((stage) => map.set(stage.id, []));
+    pipelineStages.forEach((stage) => map.set(stage.id, []));
 
     (leadsQuery.data ?? []).forEach((lead) => {
       const stageId = lead.stage?.id ?? lead.stageId;
@@ -130,7 +137,7 @@ export default function DashboardPage() {
       map.set(stageId, list);
     });
 
-    stagesQuery.data?.forEach((stage) => {
+    pipelineStages.forEach((stage) => {
       const list = map.get(stage.id);
       if (list) {
         list.sort((a, b) => {
@@ -142,7 +149,7 @@ export default function DashboardPage() {
     });
 
     return map;
-  }, [leadsQuery.data, stagesQuery.data]);
+  }, [leadsQuery.data, pipelineStages]);
 
   const handleDragEnd = (result: DropResult) => {
     const { destination, source, draggableId } = result;
@@ -154,10 +161,10 @@ export default function DashboardPage() {
       return;
     }
 
-    const stage = stagesQuery.data?.find((item) => item.id === destination.droppableId);
+    const stage = pipelineStages.find((item) => item.id === destination.droppableId);
 
     queryClient.setQueryData<LeadSummary[]>(
-      leadsKey({ q: search || undefined, ownerId: ownerFilter || undefined }),
+      leadsKey({ q: search || undefined, ownerId: ownerFilter || undefined, pipelineId: activePipelineId ?? undefined }),
       (previous) => {
         if (!previous) return previous;
 
@@ -176,16 +183,36 @@ export default function DashboardPage() {
     );
 
     moveLeadMutation.mutate({ leadId: draggableId, stageId: destination.droppableId });
+
+    const hasAlternativePipeline = pipelines.some((pipeline) => pipeline.id !== activePipelineId);
+    const isWonStage = stage?.name?.toLowerCase() === "ganho";
+    if (isWonStage && hasAlternativePipeline) {
+      const currentLeads = queryClient.getQueryData<LeadSummary[]>(
+        leadsKey({
+          q: search || undefined,
+          ownerId: ownerFilter || undefined,
+          pipelineId: activePipelineId ?? undefined,
+        }),
+      );
+      const movedLead = currentLeads?.find((lead) => lead.id === draggableId);
+      if (movedLead) {
+        setTransitionLead(movedLead);
+        setTransitionOpen(true);
+      }
+    }
   };
 
-  const isLoading = stagesQuery.isLoading || leadsQuery.isLoading;
+  const isLoadingLeads = leadsQuery.isLoading;
+  const hasPipelines = pipelines.length > 0;
+  const hasStages = pipelineStages.length > 0;
+
   const leadsBadgeLabel = crm.dashboard.stats.leads.replace(
     "{{count}}",
     String(leadsQuery.data?.length ?? 0),
   );
   const stagesBadgeLabel = crm.dashboard.stats.stages.replace(
     "{{count}}",
-    String(stagesQuery.data?.length ?? 0),
+    String(pipelineStages.length ?? 0),
   );
 
   return (
@@ -196,7 +223,9 @@ export default function DashboardPage() {
             <h1 className="text-2xl font-semibold text-foreground">{crm.dashboard.title}</h1>
             <p className="text-sm text-muted-foreground">{crm.dashboard.subtitle}</p>
           </div>
-          <Button onClick={() => setLeadDialogOpen(true)}>{crm.buttons.newLead}</Button>
+          <Button onClick={() => setLeadDialogOpen(true)} disabled={!hasPipelines || !hasStages}>
+            {crm.buttons.newLead}
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -207,6 +236,7 @@ export default function DashboardPage() {
               className="pl-9"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
+              disabled={!hasPipelines}
             />
           </div>
           <div className="md:col-span-2">
@@ -214,6 +244,7 @@ export default function DashboardPage() {
               value={ownerFilter}
               onChange={(event) => setOwnerFilter(event.target.value)}
               className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              disabled={!hasPipelines}
             >
               <option value="">{crm.dashboard.ownerFilterAll}</option>
               {owners.map((owner) => (
@@ -231,7 +262,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {isLoading ? (
+      {isPipelinesLoading ? (
         <div className="flex gap-4 overflow-x-auto">
           {Array.from({ length: 4 }).map((_, index) => (
             <div key={index} className="w-72 flex-shrink-0 space-y-3">
@@ -241,10 +272,36 @@ export default function DashboardPage() {
             </div>
           ))}
         </div>
+      ) : !hasPipelines ? (
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-card p-12 text-center">
+          <h2 className="text-lg font-semibold text-foreground">{crm.dashboard.emptyPipelines.title}</h2>
+          <p className="max-w-md text-sm text-muted-foreground">{crm.dashboard.emptyPipelines.description}</p>
+          <Button onClick={() => router.push("/settings")}>{crm.dashboard.emptyPipelines.cta}</Button>
+        </div>
+      ) : !hasStages ? (
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-card p-12 text-center">
+          <h2 className="text-lg font-semibold text-foreground">{crm.dashboard.emptyStages.title}</h2>
+          <p className="max-w-md text-sm text-muted-foreground">{crm.dashboard.emptyStages.description}</p>
+        </div>
+      ) : isLoadingLeads ? (
+        <div className="flex gap-4 overflow-x-auto">
+          {Array.from({ length: pipelineStages.length || 4 }).map((_, index) => (
+            <div key={index} className="w-72 flex-shrink-0 space-y-3">
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
+            </div>
+          ))}
+        </div>
+      ) : (leadsQuery.data?.length ?? 0) === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-card p-12 text-center">
+          <h2 className="text-lg font-semibold text-foreground">{crm.dashboard.emptyLeads}</h2>
+          <Button onClick={() => setLeadDialogOpen(true)}>{crm.buttons.newLead}</Button>
+        </div>
       ) : (
         <DragDropContext onDragEnd={handleDragEnd}>
           <div className="flex gap-4 overflow-x-auto pb-6">
-            {stagesQuery.data?.map((stage) => (
+            {pipelineStages.map((stage) => (
               <StageColumn
                 key={stage.id}
                 stage={stage}
@@ -260,7 +317,7 @@ export default function DashboardPage() {
       <NewLeadDialog
         open={leadDialogOpen}
         onOpenChange={setLeadDialogOpen}
-        stages={stagesQuery.data ?? []}
+        stages={pipelineStages as Stage[]}
         onCreate={async (payload) => {
           const result = await createLeadMutation.mutateAsync(payload);
           if (result.notes && result.lead?.id) {
@@ -282,6 +339,17 @@ export default function DashboardPage() {
         onCreate={async ({ leadId, ...payload }) => {
           await addActivityMutation.mutateAsync({ leadId, ...payload });
           setActivityLead(null);
+        }}
+      />
+
+      <LeadTransitionDialog
+        lead={transitionLead}
+        open={transitionOpen}
+        onOpenChange={(open) => {
+          setTransitionOpen(open);
+          if (!open) {
+            setTransitionLead(null);
+          }
         }}
       />
     </div>

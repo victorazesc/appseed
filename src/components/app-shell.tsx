@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -20,6 +20,9 @@ import {
 import { useTranslation } from "@/contexts/i18n-context";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { PipelineSwitcher } from "@/components/pipeline/pipeline-switcher";
+import { NewPipelineDialog } from "@/components/pipeline/new-pipeline-dialog";
+import { useActivePipeline } from "@/contexts/pipeline-context";
 
 const NAV_LINKS = [
   { key: "funnel", url: "/dashboard", icon: KanbanSquare },
@@ -39,6 +42,10 @@ export function AppShell({ children, user }: AppShellProps) {
   const pathname = usePathname();
   const { messages } = useTranslation();
   const { common } = messages;
+  const pipelineCopy = messages.crm.pipelineSwitcher;
+  const { activePipeline } = useActivePipeline();
+  const [pipelineDialogOpen, setPipelineDialogOpen] = useState(false);
+  const [pipelineToEdit, setPipelineToEdit] = useState<typeof activePipeline | null | undefined>(undefined);
 
   const navLabels = messages.appShell.navLinks;
 
@@ -63,6 +70,17 @@ export function AppShell({ children, user }: AppShellProps) {
     staleTime: 1000 * 30,
   });
 
+  const handleCreatePipeline = () => {
+    setPipelineToEdit(undefined);
+    setPipelineDialogOpen(true);
+  };
+
+  const handleEditPipeline = () => {
+    if (!activePipeline) return;
+    setPipelineToEdit(activePipeline);
+    setPipelineDialogOpen(true);
+  };
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-muted/20">
@@ -74,10 +92,17 @@ export function AppShell({ children, user }: AppShellProps) {
           <header className="flex h-16 items-center gap-4 border-b bg-background px-4">
             <SidebarTrigger className="-ml-1" />
             <div className="flex flex-1 items-center justify-between">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                 <span className="hidden text-base font-semibold text-foreground sm:inline">
                   {navItems.find((item) => item.isActive)?.title ?? messages.appShell.defaultTitle}
                 </span>
+                <PipelineSwitcher
+                  onCreatePipeline={handleCreatePipeline}
+                  onEditPipeline={handleEditPipeline}
+                />
+                <Button size="sm" onClick={handleCreatePipeline} className="hidden md:inline-flex">
+                  {pipelineCopy.create}
+                </Button>
               </div>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <LanguageSwitcher className="hidden md:flex" />
@@ -103,6 +128,11 @@ export function AppShell({ children, user }: AppShellProps) {
             <div className="mx-auto w-full space-y-6">{children}</div>
           </main>
         </SidebarInset>
+        <NewPipelineDialog
+          open={pipelineDialogOpen}
+          onOpenChange={setPipelineDialogOpen}
+        pipeline={pipelineToEdit ?? undefined}
+      />
       </div>
     </SidebarProvider>
   );

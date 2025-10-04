@@ -37,13 +37,14 @@ function mapLeadResponse<T extends LeadWithTasks | null | undefined>(lead: T) {
 
 async function resolvePipeline(pipelineId?: string) {
   if (pipelineId) {
-    return prisma.pipeline.findUnique({
-      where: { id: pipelineId },
+    return prisma.pipeline.findFirst({
+      where: { id: pipelineId, archived: false },
       include: { stages: { orderBy: { position: "asc" } } },
     });
   }
 
   return prisma.pipeline.findFirst({
+    where: { archived: false },
     orderBy: { createdAt: "asc" },
     include: { stages: { orderBy: { position: "asc" } } },
   });
@@ -62,10 +63,12 @@ export async function GET(request: Request) {
     return jsonError("Parâmetros inválidos", 400);
   }
 
-  const { stageId, q, ownerId, limit } = parseResult.data;
+  const { stageId, q, ownerId, limit, pipelineId } = parseResult.data;
 
   const leads = await prisma.lead.findMany({
     where: {
+      archived: false,
+      ...(pipelineId ? { pipelineId } : {}),
       ...(stageId ? { stageId } : {}),
       ...(ownerId ? { ownerId } : {}),
       ...(q
@@ -83,6 +86,14 @@ export async function GET(request: Request) {
           id: true,
           name: true,
           position: true,
+          pipelineId: true,
+        },
+      },
+      pipeline: {
+        select: {
+          id: true,
+          name: true,
+          color: true,
         },
       },
       activities: {

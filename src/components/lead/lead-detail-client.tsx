@@ -31,7 +31,9 @@ import { apiFetch } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatDate } from "@/lib/format";
 import type { Activity, LeadDetail, Stage } from "@/types";
+import { LeadTransitionDialog } from "@/components/lead/lead-transition-dialog";
 import { useTranslation } from "@/contexts/i18n-context";
+import { usePipelines } from "@/contexts/pipeline-context";
 
 const leadFormSchema = z.object({
   name: z.string().min(1, "Informe o nome"),
@@ -72,11 +74,13 @@ export function LeadDetailClient({ leadId }: Props) {
   const [activityDialogOpen, setActivityDialogOpen] = useState(false);
   const [activityType, setActivityType] = useState<Activity["type"]>("note");
   const [activityPrefill, setActivityPrefill] = useState<string>("");
+  const [transitionOpen, setTransitionOpen] = useState(false);
   const { messages, locale } = useTranslation();
   const { crm } = messages;
   const leadCopy = crm.leadDetail;
   const activityCopy = crm.dialogs.activity;
 
+  const { pipelines } = usePipelines();
   const leadQuery = useQuery({
     queryKey: ["lead", leadId],
     queryFn: async () => {
@@ -84,13 +88,22 @@ export function LeadDetailClient({ leadId }: Props) {
       return data.lead;
     },
   });
+  const lead = leadQuery.data;
+  const hasAlternativePipelines = useMemo(
+    () => pipelines.some((pipeline) => pipeline.id !== (lead?.pipeline?.id ?? lead?.pipelineId ?? "")),
+    [pipelines, lead?.pipeline?.id, lead?.pipelineId],
+  );
 
   const stagesQuery = useQuery({
-    queryKey: ["stages"],
+    queryKey: ["stages", leadQuery.data?.pipeline?.id ?? "unknown"],
     queryFn: async () => {
-      const data = await apiFetch<{ stages: Stage[] }>("/api/stages");
+      if (!leadQuery.data?.pipeline?.id) return [] as Stage[];
+      const data = await apiFetch<{ stages: Stage[] }>(
+        `/api/stages?pipelineId=${leadQuery.data.pipeline.id}`,
+      );
       return data.stages.sort((a, b) => a.position - b.position);
     },
+    enabled: Boolean(leadQuery.data?.pipeline?.id),
   });
 
   const updateLeadMutation = useMutation({
@@ -174,12 +187,19 @@ export function LeadDetailClient({ leadId }: Props) {
     }
   });
 
-  const handleStageChange = (stageId: string) => {
+  const handleStageChange = async (stageId: string) => {
     if (!stageId) return;
-    updateLeadMutation.mutate({ stageId });
+    try {
+      const result = await updateLeadMutation.mutateAsync({ stageId });
+      const updatedStageName = result?.lead?.stage?.name ?? lead?.stage?.name;
+      if (updatedStageName && updatedStageName.toLowerCase() === "ganho" && hasAlternativePipelines) {
+        setTransitionOpen(true);
+      }
+    } catch (error) {
+      console.error("change stage", error);
+    }
   };
 
-  const lead = leadQuery.data;
   const now = Date.now();
   const dueSoon = Boolean(
     lead?.nextDueAt &&
@@ -264,16 +284,26 @@ export function LeadDetailClient({ leadId }: Props) {
               <NotebookPen className="h-5 w-5 text-primary" />
               {lead.name}
             </CardTitle>
-            {lead.hasOverdueTasks ? (
-              <Badge variant="destructive" className="gap-1">
-                <AlertTriangle className="h-3.5 w-3.5" />
-                {overdueBadgeLabel}
-              </Badge>
-            ) : dueSoon ? (
-              <Badge variant="warning" className="gap-1">
-                <Clock className="h-3.5 w-3.5" /> {dueSoonLabel}
-              </Badge>
-            ) : null}
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setTransitionOpen(true)}
+                disabled={!hasAlternativePipelines}
+              >
+                {messages.crm.leadTransition.trigger}
+              </Button>
+              {lead.hasOverdueTasks ? (
+                <Badge variant="destructive" className="gap-1">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  {overdueBadgeLabel}
+                </Badge>
+              ) : dueSoon ? (
+                <Badge variant="warning" className="gap-1">
+                  <Clock className="h-3.5 w-3.5" /> {dueSoonLabel}
+                </Badge>
+              ) : null}
+            </div>
           </CardHeader>
           <CardContent>
             <form className="space-y-4" onSubmit={onSubmit}>
@@ -511,6 +541,8 @@ export function LeadDetailClient({ leadId }: Props) {
           await addActivityMutation.mutateAsync({ type, content, dueAt });
         }}
       />
+
+      <LeadTransitionDialog lead={lead} open={transitionOpen} onOpenChange={setTransitionOpen} />
     </div>
   );
 }

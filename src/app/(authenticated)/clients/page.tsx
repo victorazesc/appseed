@@ -13,21 +13,29 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "@/contexts/i18n-context";
+import { useActivePipeline, usePipelines } from "@/contexts/pipeline-context";
+
+const buildKey = (query: string, pipelineId?: string) => ["clients", query, pipelineId] as const;
 
 export default function ClientsPage() {
   const [query, setQuery] = useState("");
   const { messages, locale } = useTranslation();
   const { crm } = messages;
+  const { pipelines, isLoading: isPipelinesLoading } = usePipelines();
+  const { activePipelineId } = useActivePipeline();
 
   const leadsQuery = useQuery({
-    queryKey: ["clients", query],
+    queryKey: buildKey(query, activePipelineId ?? undefined),
     queryFn: async () => {
+      if (!activePipelineId) return [] as LeadSummary[];
       const params = new URLSearchParams();
-      if (query) params.set("q", query);
+      params.set("pipelineId", activePipelineId);
       params.set("limit", "200");
+      if (query) params.set("q", query);
       const data = await apiFetch<{ leads: LeadSummary[] }>(`/api/leads?${params.toString()}`);
       return data.leads;
     },
+    enabled: Boolean(activePipelineId),
   });
 
   const leads = useMemo(() => leadsQuery.data ?? [], [leadsQuery.data]);
@@ -47,6 +55,8 @@ export default function ClientsPage() {
     };
   }, [leads]);
 
+  const hasPipelines = pipelines.length > 0;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -61,6 +71,7 @@ export default function ClientsPage() {
             className="pl-9"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
+            disabled={!hasPipelines}
           />
         </div>
       </div>
@@ -103,7 +114,15 @@ export default function ClientsPage() {
 
       <Card>
         <CardContent className="p-0">
-          {leadsQuery.isLoading ? (
+          {isPipelinesLoading ? (
+            <div className="space-y-3 p-6">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <Skeleton key={index} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : !hasPipelines ? (
+            <div className="p-6 text-sm text-muted-foreground">{crm.dashboard.emptyPipelines.description}</div>
+          ) : leadsQuery.isLoading ? (
             <div className="space-y-3 p-6">
               {Array.from({ length: 6 }).map((_, index) => (
                 <Skeleton key={index} className="h-12 w-full" />
@@ -128,9 +147,7 @@ export default function ClientsPage() {
                 </thead>
                 <tbody>
                   {leads.map((lead) => {
-                    const createdAt = lead.createdAt
-                      ? formatDate(lead.createdAt, { locale })
-                      : crm.statuses.none;
+                    const createdAt = lead.createdAt ? formatDate(lead.createdAt, { locale }) : "—";
                     const statusBadge = lead.hasOverdueTasks
                       ? { label: crm.clients.statuses.overdue, variant: "destructive" as const }
                       : lead.nextDueAt

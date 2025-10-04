@@ -48,6 +48,68 @@ type CrmTranslations = {
     notes: string;
     activityContent: string;
   };
+  pipelineSwitcher: {
+    title: string;
+    create: string;
+    edit: string;
+    manage: string;
+    empty: string;
+    active: string;
+    loading: string;
+  };
+  pipelineModal: {
+    title: string;
+    editTitle?: string;
+    description?: string;
+    editDescription?: string;
+    nameLabel: string;
+    namePlaceholder?: string;
+    colorLabel: string;
+    stagesLabel: string;
+    stagesHelper: string;
+    addStage: string;
+    stagePlaceholder: string;
+    deleteStage: string;
+    create: string;
+    save: string;
+    cancel: string;
+    nameRequired: string;
+    stageNameRequired: string;
+    created?: string;
+    saved?: string;
+    error?: string;
+  };
+  leadTransition: {
+    title: string;
+    description: string;
+    pipelineLabel: string;
+    stageLabel: string;
+    copyActivities: string;
+    archiveOriginal: string;
+    submit: string;
+    submitting: string;
+    success: string;
+    duplicate: string;
+    error: string;
+    open: string;
+    trigger: string;
+    empty: string;
+    cancel: string;
+  };
+  settings: {
+    tabs: {
+      pipelines: string;
+      users: string;
+      preferences: string;
+    };
+    pipelines: {
+      title: string;
+      subtitle: string;
+      empty: string;
+      deleted: string;
+      deleteConfirm: string;
+    };
+  };
   dashboard: {
     title: string;
     subtitle: string;
@@ -56,6 +118,17 @@ type CrmTranslations = {
       leads: string;
       stages: string;
     };
+    emptyPipelines: {
+      title: string;
+      description: string;
+      cta: string;
+    };
+    emptyStages: {
+      title: string;
+      description: string;
+      cta: string;
+    };
+    emptyLeads: string;
   };
   stageColumn: {
     leadCount: string;
@@ -124,6 +197,7 @@ type CrmTranslations = {
       title: string;
       stage: string;
       total: string;
+      value: string;
     };
     empty: string;
   };
@@ -773,6 +847,7 @@ export const translations: Record<Language, {
             "R$ 60k - R$ 100k",
             "Acima de R$ 100k",
             "Ainda estamos avaliando",
+            "Algo rápido e muito barato"
           ],
           timelineOptions: [
             "Urgente (preciso em até 30 dias)",
@@ -836,6 +911,68 @@ export const translations: Record<Language, {
         notes: "Detalhes ou contexto",
         activityContent: "Descreva a atividade",
       },
+      pipelineSwitcher: {
+        title: "Funil ativo",
+        create: "Criar funil",
+        edit: "Editar funil",
+        manage: "Gerenciar funis",
+        empty: "Nenhum funil disponível",
+        active: "Atual",
+        loading: "Atualizando...",
+      },
+      pipelineModal: {
+        title: "Novo funil",
+        editTitle: "Editar funil",
+        description: "Defina um nome, cor e etapas iniciais para organizar seu processo.",
+        editDescription: "Atualize informações do funil e ajuste a ordem das etapas.",
+        nameLabel: "Nome do funil",
+        namePlaceholder: "Ex.: Funil de Vendas",
+        colorLabel: "Cor",
+        stagesLabel: "Etapas",
+        stagesHelper: "Adicione ou reordene as etapas de acordo com o seu processo.",
+        addStage: "Adicionar etapa",
+        stagePlaceholder: "Nome da etapa",
+        deleteStage: "Remover",
+        create: "Criar",
+        save: "Salvar mudanças",
+        cancel: "Cancelar",
+        nameRequired: "Informe o nome do funil",
+        stageNameRequired: "Informe o nome das etapas",
+        created: "Funil criado com sucesso",
+        saved: "Funil atualizado",
+        error: "Não foi possível salvar o funil.",
+      },
+      leadTransition: {
+        title: "Mover lead para outro funil",
+        description: "Selecione o funil de destino e a etapa inicial para continuar o acompanhamento.",
+        pipelineLabel: "Funil destino",
+        stageLabel: "Etapa inicial",
+        copyActivities: "Copiar atividades dos últimos 30 dias",
+        archiveOriginal: "Arquivar lead original após mover",
+        submit: "Mover",
+        submitting: "Movendo...",
+        success: "Lead enviado para {{pipeline}}",
+        duplicate: "Esse lead já foi enviado recentemente para {{pipeline}}.",
+        error: "Não foi possível mover o lead. Tente novamente.",
+        open: "Abrir",
+        trigger: "Enviar para outro funil",
+        empty: "Nenhum outro funil disponível.",
+        cancel: "Cancelar",
+      },
+      settings: {
+        tabs: {
+          pipelines: "Funis",
+          users: "Usuários",
+          preferences: "Preferências",
+        },
+        pipelines: {
+          title: "Funis",
+          subtitle: "Gerencie seus funis, cores e etapas para cada processo.",
+          empty: "Nenhum funil cadastrado ainda.",
+          deleted: "Funil removido.",
+          deleteConfirm: "Tem certeza que deseja excluir este funil?",
+        },
+      },
       dashboard: {
         title: "Funil de Vendas",
         subtitle: "Acompanhe leads, atividades e organize o pipeline.",
@@ -844,6 +981,17 @@ export const translations: Record<Language, {
           leads: "Leads: {{count}}",
           stages: "Etapas: {{count}}",
         },
+        emptyPipelines: {
+          title: "Você ainda não tem funis",
+          description: "Crie um funil para organizar seu processo de vendas e pós-vendas.",
+          cta: "Criar funil",
+        },
+        emptyStages: {
+          title: "Configure as etapas",
+          description: "Este funil não possui etapas ainda. Adicione etapas para começar a organizar os leads.",
+          cta: "Adicionar etapa",
+        },
+        emptyLeads: "Sem leads por aqui ainda. Clique em Criar lead para começar.",
       },
       stageColumn: {
         leadCount: "{{count}} leads",
@@ -913,6 +1061,7 @@ export const translations: Record<Language, {
           title: "Tabela detalhada",
           stage: "Etapa",
           total: "Total",
+          value: "Valor",
         },
         empty: "Nenhuma métrica disponível.",
       },
@@ -1417,6 +1566,7 @@ export const translations: Record<Language, {
             "$60k - $100k",
             "Above $100k",
             "Still evaluating",
+            "Something quick and very cheap"
           ],
           timelineOptions: [
             "Urgent (need it within 30 days)",
@@ -1480,6 +1630,68 @@ export const translations: Record<Language, {
         notes: "Details or context",
         activityContent: "Describe the activity",
       },
+      pipelineSwitcher: {
+        title: "Active pipeline",
+        create: "Create pipeline",
+        edit: "Edit pipeline",
+        manage: "Manage pipelines",
+        empty: "No pipelines available",
+        active: "Active",
+        loading: "Updating...",
+      },
+      pipelineModal: {
+        title: "New pipeline",
+        editTitle: "Edit pipeline",
+        description: "Set a name, color, and starting stages to organize your workflow.",
+        editDescription: "Update pipeline details and stage order.",
+        nameLabel: "Pipeline name",
+        namePlaceholder: "e.g. Sales Funnel",
+        colorLabel: "Color",
+        stagesLabel: "Stages",
+        stagesHelper: "Add, rename, or reorder the stages to match your process.",
+        addStage: "Add stage",
+        stagePlaceholder: "Stage name",
+        deleteStage: "Remove",
+        create: "Create",
+        save: "Save changes",
+        cancel: "Cancel",
+        nameRequired: "Provide the pipeline name",
+        stageNameRequired: "Provide the stage names",
+        created: "Pipeline created successfully",
+        saved: "Pipeline updated",
+        error: "We couldn't save the pipeline.",
+      },
+      leadTransition: {
+        title: "Move lead to another pipeline",
+        description: "Choose the destination pipeline and starting stage to keep the follow-up on track.",
+        pipelineLabel: "Destination pipeline",
+        stageLabel: "Starting stage",
+        copyActivities: "Copy activities from the last 30 days",
+        archiveOriginal: "Archive original lead after move",
+        submit: "Move",
+        submitting: "Moving...",
+        success: "Lead sent to {{pipeline}}",
+        duplicate: "This lead was already moved recently to {{pipeline}}.",
+        error: "We couldn't move the lead. Try again.",
+        open: "Open",
+        trigger: "Send to another pipeline",
+        empty: "No other pipelines available.",
+        cancel: "Cancel",
+      },
+      settings: {
+        tabs: {
+          pipelines: "Pipelines",
+          users: "Users",
+          preferences: "Preferences",
+        },
+        pipelines: {
+          title: "Pipelines",
+          subtitle: "Manage pipelines, colors, and stages for each workflow.",
+          empty: "No pipelines yet.",
+          deleted: "Pipeline removed.",
+          deleteConfirm: "Are you sure you want to delete this pipeline?",
+        },
+      },
       dashboard: {
         title: "Sales Pipeline",
         subtitle: "Track leads, activities, and keep your pipeline organized.",
@@ -1488,6 +1700,17 @@ export const translations: Record<Language, {
           leads: "Leads: {{count}}",
           stages: "Stages: {{count}}",
         },
+        emptyPipelines: {
+          title: "You don't have any pipelines yet",
+          description: "Create a pipeline to organize your sales or post-sales process.",
+          cta: "Create pipeline",
+        },
+        emptyStages: {
+          title: "Configure the stages",
+          description: "This pipeline has no stages yet. Add stages to start organizing leads.",
+          cta: "Add stage",
+        },
+        emptyLeads: "No leads here yet. Click Create lead to get started.",
       },
       stageColumn: {
         leadCount: "{{count}} leads",
@@ -1556,6 +1779,7 @@ export const translations: Record<Language, {
           title: "Detailed table",
           stage: "Stage",
           total: "Total",
+          value: "Value",
         },
         empty: "No metrics available.",
       },
@@ -2060,6 +2284,7 @@ export const translations: Record<Language, {
             "$60k - $100k",
             "Más de $100k",
             "Aún evaluando",
+            "Algo rápido y muy barato"
           ],
           timelineOptions: [
             "Urgente (lo necesito en 30 días)",
@@ -2123,6 +2348,68 @@ export const translations: Record<Language, {
         notes: "Detalles o contexto",
         activityContent: "Describe la actividad",
       },
+      pipelineSwitcher: {
+        title: "Embudo activo",
+        create: "Crear embudo",
+        edit: "Editar embudo",
+        manage: "Gestionar embudos",
+        empty: "No hay embudos disponibles",
+        active: "Activo",
+        loading: "Actualizando...",
+      },
+      pipelineModal: {
+        title: "Nuevo embudo",
+        editTitle: "Editar embudo",
+        description: "Define un nombre, color y etapas iniciales para organizar tu proceso.",
+        editDescription: "Actualiza la información del embudo y ajusta el orden de las etapas.",
+        nameLabel: "Nombre del embudo",
+        namePlaceholder: "Ej.: Embudo de ventas",
+        colorLabel: "Color",
+        stagesLabel: "Etapas",
+        stagesHelper: "Agrega o reordena las etapas según tu proceso.",
+        addStage: "Agregar etapa",
+        stagePlaceholder: "Nombre de la etapa",
+        deleteStage: "Eliminar",
+        create: "Crear",
+        save: "Guardar cambios",
+        cancel: "Cancelar",
+        nameRequired: "Ingresa el nombre del embudo",
+        stageNameRequired: "Ingresa los nombres de las etapas",
+        created: "Embudo creado con éxito",
+        saved: "Embudo actualizado",
+        error: "No pudimos guardar el embudo.",
+      },
+      leadTransition: {
+        title: "Mover lead a otro embudo",
+        description: "Elige el embudo de destino y la etapa inicial para continuar el seguimiento.",
+        pipelineLabel: "Embudo destino",
+        stageLabel: "Etapa inicial",
+        copyActivities: "Copiar actividades de los últimos 30 días",
+        archiveOriginal: "Archivar lead original después de mover",
+        submit: "Mover",
+        submitting: "Moviendo...",
+        success: "Lead enviado a {{pipeline}}",
+        duplicate: "Este lead ya fue enviado recientemente a {{pipeline}}.",
+        error: "No pudimos mover el lead. Intenta nuevamente.",
+        open: "Abrir",
+        trigger: "Enviar a otro embudo",
+        empty: "No hay otros embudos disponibles.",
+        cancel: "Cancelar",
+      },
+      settings: {
+        tabs: {
+          pipelines: "Embudos",
+          users: "Usuarios",
+          preferences: "Preferencias",
+        },
+        pipelines: {
+          title: "Embudos",
+          subtitle: "Gestiona embudos, colores y etapas para cada proceso.",
+          empty: "Aún no hay embudos.",
+          deleted: "Embudo eliminado.",
+          deleteConfirm: "¿Seguro que deseas eliminar este embudo?",
+        },
+      },
       dashboard: {
         title: "Embudo de ventas",
         subtitle: "Sigue los leads, actividades y organiza tu pipeline.",
@@ -2131,6 +2418,17 @@ export const translations: Record<Language, {
           leads: "Leads: {{count}}",
           stages: "Etapas: {{count}}",
         },
+        emptyPipelines: {
+          title: "Aún no tienes embudos",
+          description: "Crea un embudo para organizar tu proceso comercial o de postventa.",
+          cta: "Crear embudo",
+        },
+        emptyStages: {
+          title: "Configura las etapas",
+          description: "Este embudo no tiene etapas todavía. Añade etapas para comenzar a organizar los leads.",
+          cta: "Agregar etapa",
+        },
+        emptyLeads: "Sin leads por aquí todavía. Haz clic en Crear lead para empezar.",
       },
       stageColumn: {
         leadCount: "{{count}} leads",
@@ -2200,6 +2498,7 @@ export const translations: Record<Language, {
           title: "Tabla detallada",
           stage: "Etapa",
           total: "Total",
+          value: "Valor",
         },
         empty: "No hay métricas disponibles.",
       },

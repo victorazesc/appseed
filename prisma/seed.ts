@@ -9,26 +9,57 @@ async function main() {
   await prisma.stage.deleteMany();
   await prisma.pipeline.deleteMany();
 
-  const pipeline = await prisma.pipeline.create({
-    data: {
-      name: "Default",
-      stages: {
-        create: [
-          { name: "Lead Novo", position: 0 },
-          { name: "Contato Inicial", position: 1 },
-          { name: "Proposta Enviada", position: 2 },
-          { name: "Fechamento", position: 3 },
-          { name: "Ganho", position: 4 },
-          { name: "Perda", position: 5 },
-        ],
-      },
+  const pipelinesData = [
+    {
+      name: "Funil de Vendas",
+      color: "#16A34A",
+      stages: [
+        "Lead Novo",
+        "Contato Inicial",
+        "Proposta Enviada",
+        "Fechamento",
+        "Ganho",
+        "Perda",
+      ],
     },
-    include: { stages: true },
-  });
+    {
+      name: "Pós-vendas",
+      color: "#22D3EE",
+      stages: [
+        "Onboarding",
+        "Implementação",
+        "Adoção",
+        "Renovação",
+        "Churn",
+      ],
+    },
+  ] as const;
 
-  const stageByName = Object.fromEntries(
-    pipeline.stages.map((stage) => [stage.name, stage])
-  );
+  const pipelines: Array<{
+    pipeline: Awaited<ReturnType<typeof prisma.pipeline.create>>;
+    stageByName: Record<string, { id: string }>;
+  }> = [];
+
+  for (const data of pipelinesData) {
+    const created = await prisma.pipeline.create({
+      data: {
+        name: data.name,
+        color: data.color,
+        stages: {
+          create: data.stages.map((stageName, index) => ({
+            name: stageName,
+            position: index,
+          })),
+        },
+      },
+      include: { stages: true },
+    });
+
+    pipelines.push({
+      pipeline: created,
+      stageByName: Object.fromEntries(created.stages.map((stage) => [stage.name, stage])),
+    });
+  }
 
   const leads: Array<{
     name: string;
@@ -176,7 +207,8 @@ async function main() {
   ];
 
   for (const lead of leads) {
-    const stage = stageByName[lead.stageName];
+    const pipelineEntry = pipelines[0];
+    const stage = pipelineEntry.stageByName[lead.stageName];
     if (!stage) continue;
 
     await prisma.lead.create({
@@ -187,7 +219,7 @@ async function main() {
         company: lead.company,
         valueCents: lead.valueCents,
         ownerId: lead.ownerId,
-        pipelineId: pipeline.id,
+        pipelineId: pipelineEntry.pipeline.id,
         stageId: stage.id,
         activities: {
           create: lead.activities.map((activity) => ({

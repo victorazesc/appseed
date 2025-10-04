@@ -18,11 +18,14 @@ enum ActivityType {
 model Pipeline {
   id        String   @id @default(cuid())
   name      String
+  color     String   @default("#16A34A")
+  archived  Boolean  @default(false)
   stages    Stage[]
   leads     Lead[]
   createdAt DateTime @default(now())
 
   @@unique([name])
+  @@index([archived])
 }
 
 model Stage {
@@ -52,8 +55,11 @@ model Lead {
   stage      Stage?    @relation(fields: [stageId], references: [id], onDelete: SetNull)
   stageId    String?
   activities Activity[]
+  archived   Boolean   @default(false)
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
+
+  @@index([archived])
 }
 
 model Activity {

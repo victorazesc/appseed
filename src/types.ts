@@ -5,6 +5,19 @@ export type Stage = {
   pipelineId?: string;
 };
 
+export type Pipeline = {
+  id: string;
+  name: string;
+  color: string;
+  archived?: boolean;
+  createdAt?: string;
+  stages?: Stage[];
+  _count?: {
+    stages: number;
+    leads: number;
+  };
+};
+
 export type LeadSummary = {
   id: string;
   name: string;
@@ -15,9 +28,11 @@ export type LeadSummary = {
   ownerId?: string | null;
   stageId?: string | null;
   stage?: Stage | null;
+  pipelineId?: string;
   hasOverdueTasks?: boolean;
   overdueTasksCount?: number;
   nextDueAt?: string | Date | null;
+  archived?: boolean;
   _count?: {
     activities: number;
   };
@@ -45,7 +60,17 @@ export type LeadDetail = LeadSummary & {
 };
 
 export type MetricsOverview = {
-  leads_per_stage: Record<string, number>;
+  pipeline: {
+    id: string;
+    name: string;
+    color: string;
+  };
+  leads_per_stage: Array<{
+    stageId: string;
+    stageName: string;
+    count: number;
+    valueCents: number;
+  }>;
   conversion_rate_pct: number;
   avg_time_days: number;
 };

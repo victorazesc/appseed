@@ -105,6 +105,7 @@ function sanitizePayload(payload: ContactPayload): SanitizedPayload {
 
 async function createOrUpdateLead(data: SanitizedPayload) {
   const pipeline = await prisma.pipeline.findFirst({
+    where: { archived: false },
     orderBy: { createdAt: "asc" },
     include: { stages: { orderBy: { position: "asc" } } },
   });
@@ -132,6 +133,7 @@ async function createOrUpdateLead(data: SanitizedPayload) {
   const existingLead = leadMatchFilters.length
     ? await prisma.lead.findFirst({
         where: {
+          archived: false,
           OR: leadMatchFilters,
         },
       })

@@ -32,6 +32,8 @@ const dueDateSchema = z
     return date;
   });
 
+const hexColorRegex = /^#(?:[0-9a-fA-F]{3}){1,2}$/;
+
 export const leadCreateSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
   email: z.string().email().optional(),
@@ -47,6 +49,7 @@ export const leadUpdateSchema = leadCreateSchema.partial();
 
 export const leadQuerySchema = z.object({
   stageId: z.string().optional(),
+  pipelineId: z.string().optional(),
   q: z.string().optional(),
   ownerId: z.string().optional(),
   limit: z
@@ -73,9 +76,36 @@ export const activityCreateSchema = z.object({
 export const metricsQuerySchema = z.object({
   from: z.string().optional(),
   to: z.string().optional(),
+  pipelineId: z.string().optional(),
 });
 
 export const landingLeadSchema = leadCreateSchema.extend({
   email: z.string().email("Informe um email válido"),
   phone: z.string().min(8, "Informe um telefone válido").optional(),
+});
+
+const pipelineStageInputSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1, "Informe o nome da etapa"),
+});
+
+export const pipelineCreateSchema = z.object({
+  name: z.string().min(1, "Informe o nome do funil"),
+  color: z.string().regex(hexColorRegex, "Cor inválida"),
+  stages: z
+    .array(pipelineStageInputSchema)
+    .min(1, "Adicione pelo menos uma etapa"),
+});
+
+export const pipelineUpdateSchema = pipelineCreateSchema
+  .partial()
+  .extend({
+    stages: z.array(pipelineStageInputSchema).optional(),
+  });
+
+export const leadTransitionSchema = z.object({
+  pipelineId: z.string(),
+  stageId: z.string().optional(),
+  copyActivities: z.boolean().optional(),
+  archiveOriginal: z.boolean().optional(),
 });

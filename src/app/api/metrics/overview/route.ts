@@ -11,6 +11,7 @@ export async function GET(request: Request) {
   const parsed = metricsQuerySchema.safeParse({
     from: searchParams.get("from") ?? undefined,
     to: searchParams.get("to") ?? undefined,
+    pipelineId: searchParams.get("pipelineId") ?? undefined,
   });
 
   if (!parsed.success) {
@@ -32,43 +33,59 @@ export async function GET(request: Request) {
     return jsonError("Período inválido", 422);
   }
 
-  const [stages, leadsInPeriod] = await Promise.all([
-    prisma.stage.findMany({
-      orderBy: { position: "asc" },
-      select: { id: true, name: true },
-    }),
-    prisma.lead.findMany({
-      where: {
-        createdAt: {
-          gte: fromDate,
-          lte: toDate,
-        },
-      },
-      select: {
-        id: true,
-        createdAt: true,
-        stage: {
-          select: { name: true },
-        },
-      },
-    }),
-  ]);
+  const pipeline = await prisma.pipeline.findFirst({
+    where: {
+      archived: false,
+      ...(parsed.data.pipelineId ? { id: parsed.data.pipelineId } : {}),
+    },
+    include: {
+      stages: { orderBy: { position: "asc" } },
+    },
+  });
 
-  const leadsPerStage = Object.fromEntries(
-    stages.map((stage) => [stage.name, 0])
-  );
+  if (!pipeline) {
+    return jsonError("Nenhum funil encontrado", 404);
+  }
+
+  const leadsInPeriod = await prisma.lead.findMany({
+    where: {
+      pipelineId: pipeline.id,
+      archived: false,
+      createdAt: {
+        gte: fromDate,
+        lte: toDate,
+      },
+    },
+    select: {
+      id: true,
+      createdAt: true,
+      valueCents: true,
+      stageId: true,
+    },
+  });
+
+  const stageAggregates = pipeline.stages.map((stage) => ({
+    stageId: stage.id,
+    stageName: stage.name,
+    count: 0,
+    valueCents: 0,
+  }));
+
+  const stageAggregateById = new Map(stageAggregates.map((stage) => [stage.stageId, stage]));
 
   for (const lead of leadsInPeriod) {
-    const stageName = lead.stage?.name;
-    if (stageName && stageName in leadsPerStage) {
-      leadsPerStage[stageName] += 1;
+    const aggregate = stageAggregateById.get(lead.stageId ?? "");
+    if (aggregate) {
+      aggregate.count += 1;
+      aggregate.valueCents += lead.valueCents ?? 0;
     }
   }
 
   const totalLeads = leadsInPeriod.length;
-  const closedLeads = leadsInPeriod.filter(
-    (lead) => lead.stage?.name === "Fechamento"
-  ).length;
+  const lastStageId = pipeline.stages[pipeline.stages.length - 1]?.id;
+  const closedLeads = lastStageId
+    ? leadsInPeriod.filter((lead) => lead.stageId === lastStageId).length
+    : 0;
 
   const conversionRatePct = totalLeads === 0 ? 0 : (closedLeads / totalLeads) * 100;
 
@@ -82,7 +99,12 @@ export async function GET(request: Request) {
           }, 0) / totalLeads;
 
   return NextResponse.json({
-    leads_per_stage: leadsPerStage,
+    pipeline: {
+      id: pipeline.id,
+      name: pipeline.name,
+      color: pipeline.color,
+    },
+    leads_per_stage: stageAggregates,
     conversion_rate_pct: Number(conversionRatePct.toFixed(2)),
     avg_time_days: Number(avgTimeDays.toFixed(2)),
   });
