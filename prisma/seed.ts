@@ -50,19 +50,21 @@ async function main() {
   }> = [];
 
   for (const data of pipelinesData) {
+    const pipelineCreateInput: Prisma.PipelineCreateInput = {
+      name: data.name,
+      color: data.color,
+      webhookToken: generateToken(),
+      webhookSlug: generateSlug(data.name),
+      stages: {
+        create: data.stages.map((stageName, index) => ({
+          name: stageName,
+          position: index,
+        })),
+      },
+    };
+
     const created = await prisma.pipeline.create({
-      data: {
-        name: data.name,
-        color: data.color,
-        webhookToken: generateToken(),
-        webhookSlug: generateSlug(data.name),
-        stages: {
-          create: data.stages.map((stageName, index) => ({
-            name: stageName,
-            position: index,
-          })),
-        },
-      } satisfies Prisma.PipelineCreateInput,
+      data: pipelineCreateInput,
       include: { stages: true },
     });
 
