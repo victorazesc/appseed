@@ -1,7 +1,7 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactNode, useState } from "react";
+import { ReactNode, Suspense, useState } from "react";
 import { SessionProvider } from "next-auth/react";
 import { Toaster } from "sonner";
 
@@ -27,10 +27,12 @@ export function Providers({ children }: { children: ReactNode }) {
       <ThemeProvider>
         <QueryClientProvider client={queryClient}>
           <I18nProvider>
-            <PipelineProvider>
-              {children}
-              <Toaster position="top-right" richColors />
-            </PipelineProvider>
+            <Suspense fallback={null}>
+              <PipelineProvider>
+                {children}
+                <Toaster position="top-right" richColors />
+              </PipelineProvider>
+            </Suspense>
           </I18nProvider>
         </QueryClientProvider>
       </ThemeProvider>

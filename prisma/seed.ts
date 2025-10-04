@@ -1,6 +1,6 @@
 import { addHours, addDays } from "date-fns";
 import { randomBytes } from "crypto";
-import { ActivityType, PrismaClient } from "@prisma/client";
+import { ActivityType, Prisma, PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -62,7 +62,7 @@ async function main() {
             position: index,
           })),
         },
-      },
+      } satisfies Prisma.PipelineCreateInput,
       include: { stages: true },
     });
 
