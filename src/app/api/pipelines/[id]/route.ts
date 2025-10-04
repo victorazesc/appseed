@@ -87,16 +87,28 @@ export async function PATCH(
         }
 
         for (const [index, stage] of stages.entries()) {
+          const transitionMode = stage.transitionMode ?? "NONE";
+          const baseData = {
+            name: stage.name,
+            position: index,
+            transitionMode,
+            transitionTargetPipelineId:
+              transitionMode === "NONE" ? null : stage.transitionTargetPipelineId ?? null,
+            transitionTargetStageId:
+              transitionMode === "NONE" ? null : stage.transitionTargetStageId ?? null,
+            transitionCopyActivities: stage.transitionCopyActivities ?? true,
+            transitionArchiveSource: stage.transitionArchiveSource ?? false,
+          } as const;
+
           if (stage.id) {
             await tx.stage.update({
               where: { id: stage.id, pipelineId: id },
-              data: { name: stage.name, position: index },
+              data: baseData,
             });
           } else {
             await tx.stage.create({
               data: {
-                name: stage.name,
-                position: index,
+                ...baseData,
                 pipelineId: id,
               },
             });
@@ -104,7 +116,28 @@ export async function PATCH(
         }
       }
 
-      return tx.pipeline.findUnique({ where: { id }, include: includeConfig() });
+      const pipeline = await tx.pipeline.findUnique({ where: { id }, include: includeConfig() });
+
+      if (!pipeline) {
+        return pipeline;
+      }
+
+      const hasValidDefault = pipeline.webhookDefaultStageId
+        ? pipeline.stages.some((stage) => stage.id === pipeline.webhookDefaultStageId)
+        : false;
+
+      if (!hasValidDefault) {
+        const fallbackStageId = pipeline.stages[0]?.id ?? null;
+        if (fallbackStageId !== pipeline.webhookDefaultStageId) {
+          await tx.pipeline.update({
+            where: { id },
+            data: { webhookDefaultStageId: fallbackStageId },
+          });
+          return tx.pipeline.findUnique({ where: { id }, include: includeConfig() });
+        }
+      }
+
+      return pipeline;
     });
 
     return NextResponse.json({ pipeline: result });

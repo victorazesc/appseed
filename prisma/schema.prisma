@@ -15,11 +15,20 @@ enum ActivityType {
   task
 }
 
+enum StageTransitionMode {
+  NONE
+  MANUAL
+  AUTO
+}
+
 model Pipeline {
   id        String   @id @default(cuid())
   name      String
   color     String   @default("#16A34A")
   archived  Boolean  @default(false)
+  webhookToken String? @unique
+  webhookSlug  String? @unique
+  webhookDefaultStageId String?
   stages    Stage[]
   leads     Lead[]
   createdAt DateTime @default(now())
@@ -37,9 +46,15 @@ model Stage {
   leads      Lead[]
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  transitionMode StageTransitionMode @default(NONE)
+  transitionTargetPipelineId String?
+  transitionTargetStageId    String?
+  transitionCopyActivities   Boolean @default(true)
+  transitionArchiveSource    Boolean @default(false)
 
   @@unique([pipelineId, position])
   @@unique([pipelineId, name])
+  @@index([transitionTargetPipelineId])
 }
 
 model Lead {

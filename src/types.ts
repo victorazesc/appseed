@@ -1,8 +1,15 @@
+export type StageTransitionMode = "NONE" | "MANUAL" | "AUTO";
+
 export type Stage = {
   id: string;
   name: string;
   position: number;
   pipelineId?: string;
+  transitionMode?: StageTransitionMode;
+  transitionTargetPipelineId?: string | null;
+  transitionTargetStageId?: string | null;
+  transitionCopyActivities?: boolean;
+  transitionArchiveSource?: boolean;
 };
 
 export type Pipeline = {
@@ -16,6 +23,20 @@ export type Pipeline = {
     stages: number;
     leads: number;
   };
+  webhookToken?: string | null;
+  webhookSlug?: string | null;
+  webhookDefaultStageId?: string | null;
+};
+
+export type PipelineWebhookConfig = {
+  url: string;
+  slugUrl?: string | null;
+  slug?: string | null;
+  hasToken: boolean;
+  token?: string | null;
+  tokenPreview?: string | null;
+  defaultStageId?: string | null;
+  stages: Array<{ id: string; name: string }>;
 };
 
 export type LeadSummary = {
@@ -52,6 +73,7 @@ export type LeadDetail = LeadSummary & {
   pipeline: {
     id: string;
     name: string;
+    color?: string;
   };
   hasOverdueTasks?: boolean;
   overdueTasksCount?: number;

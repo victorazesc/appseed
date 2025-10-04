@@ -87,6 +87,11 @@ export const landingLeadSchema = leadCreateSchema.extend({
 const pipelineStageInputSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1, "Informe o nome da etapa"),
+  transitionMode: z.enum(["NONE", "MANUAL", "AUTO"]).optional(),
+  transitionTargetPipelineId: z.string().nullable().optional(),
+  transitionTargetStageId: z.string().nullable().optional(),
+  transitionCopyActivities: z.boolean().optional(),
+  transitionArchiveSource: z.boolean().optional(),
 });
 
 export const pipelineCreateSchema = z.object({
@@ -103,9 +108,25 @@ export const pipelineUpdateSchema = pipelineCreateSchema
     stages: z.array(pipelineStageInputSchema).optional(),
   });
 
+export const pipelineWebhookUpdateSchema = z.object({
+  defaultStageId: z.string().nullable().optional(),
+});
+
 export const leadTransitionSchema = z.object({
-  pipelineId: z.string(),
-  stageId: z.string().optional(),
+  targetPipelineId: z.string(),
+  targetStageId: z.string().optional(),
   copyActivities: z.boolean().optional(),
-  archiveOriginal: z.boolean().optional(),
+  archiveSource: z.boolean().optional(),
+  sourceStageId: z.string().optional(),
+});
+
+export const pipelineWebhookPayloadSchema = z.object({
+  name: z.string().min(1, "Nome é obrigatório"),
+  email: z.string().email().optional(),
+  phone: z.string().optional(),
+  company: z.string().optional(),
+  value: moneyValueSchema,
+  stage: z.string().optional(),
+  origin: z.string().optional(),
+  metadata: z.record(z.any()).optional(),
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { DragDropContext, type DropResult } from "@hello-pangea/dnd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -45,6 +45,7 @@ export default function DashboardPage() {
   const queryClient = useQueryClient();
   const { messages } = useTranslation();
   const { crm } = messages;
+  const transitionCopy = crm.leadTransition;
   const { pipelines, isLoading: isPipelinesLoading } = usePipelines();
   const { activePipeline, activePipelineId } = useActivePipeline();
   const [search, setSearch] = useState("");
@@ -53,6 +54,14 @@ export default function DashboardPage() {
   const [activityLead, setActivityLead] = useState<LeadSummary | null>(null);
   const [transitionLead, setTransitionLead] = useState<LeadSummary | null>(null);
   const [transitionOpen, setTransitionOpen] = useState(false);
+  const [transitionRule, setTransitionRule] = useState<{
+    pipelineId?: string | null;
+    stageId?: string | null;
+    copyActivities?: boolean;
+    archiveSource?: boolean;
+    sourceStageId?: string | null;
+  } | null>(null);
+  const autoTransitioningRef = useRef(new Set<string>());
 
   const pipelineStages = useMemo(() => {
     const stages = activePipeline?.stages ?? [];
@@ -151,6 +160,67 @@ export default function DashboardPage() {
     return map;
   }, [leadsQuery.data, pipelineStages]);
 
+  const triggerAutoTransition = async (lead: LeadSummary, stage: Stage, sourceStageId?: string) => {
+    if (!stage.transitionTargetPipelineId) {
+      toast.error(transitionCopy.error);
+      return;
+    }
+
+    if (autoTransitioningRef.current.has(lead.id)) {
+      return;
+    }
+
+    autoTransitioningRef.current.add(lead.id);
+
+    try {
+      const payload = {
+        targetPipelineId: stage.transitionTargetPipelineId,
+        targetStageId: stage.transitionTargetStageId ?? undefined,
+        copyActivities: stage.transitionCopyActivities ?? true,
+        archiveSource: stage.transitionArchiveSource ?? false,
+        sourceStageId: sourceStageId ?? lead.stageId ?? lead.stage?.id,
+      };
+
+      const response = await fetch(`/api/leads/${lead.id}/transition`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const body = await response.json();
+
+      if (!response.ok) {
+        if (body?.error === "already_transferred" && body?.pipelineName) {
+          toast.error(transitionCopy.duplicate.replace("{{pipeline}}", body.pipelineName));
+        } else {
+          toast.error(transitionCopy.error);
+        }
+        return;
+      }
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["leads"] }),
+        queryClient.invalidateQueries({ queryKey: ["pipelines"] }),
+      ]);
+
+      toast.success(transitionCopy.success.replace("{{pipeline}}", body.targetPipelineName), {
+        action: {
+          label: transitionCopy.open,
+          onClick: () => {
+            const params = new URLSearchParams(window.location.search);
+            params.set("pipelineId", body.targetPipelineId);
+            router.push(`/dashboard?${params.toString()}#lead-${body.newLeadId}`);
+          },
+        },
+      });
+    } catch (error) {
+      console.error("auto transition lead", error);
+      toast.error(transitionCopy.error);
+    } finally {
+      autoTransitioningRef.current.delete(lead.id);
+    }
+  };
+
   const handleDragEnd = (result: DropResult) => {
     const { destination, source, draggableId } = result;
     if (!destination) return;
@@ -183,22 +253,33 @@ export default function DashboardPage() {
     );
 
     moveLeadMutation.mutate({ leadId: draggableId, stageId: destination.droppableId });
+    const currentLeads = queryClient.getQueryData<LeadSummary[]>(
+      leadsKey({
+        q: search || undefined,
+        ownerId: ownerFilter || undefined,
+        pipelineId: activePipelineId ?? undefined,
+      }),
+    );
 
-    const hasAlternativePipeline = pipelines.some((pipeline) => pipeline.id !== activePipelineId);
-    const isWonStage = stage?.name?.toLowerCase() === "ganho";
-    if (isWonStage && hasAlternativePipeline) {
-      const currentLeads = queryClient.getQueryData<LeadSummary[]>(
-        leadsKey({
-          q: search || undefined,
-          ownerId: ownerFilter || undefined,
-          pipelineId: activePipelineId ?? undefined,
-        }),
-      );
-      const movedLead = currentLeads?.find((lead) => lead.id === draggableId);
+    const movedLead = currentLeads?.find((lead) => lead.id === draggableId);
+
+    if (stage?.transitionMode === "MANUAL") {
       if (movedLead) {
         setTransitionLead(movedLead);
+        setTransitionRule({
+          pipelineId: stage.transitionTargetPipelineId ?? undefined,
+          stageId: stage.transitionTargetStageId ?? undefined,
+          copyActivities: stage.transitionCopyActivities ?? true,
+          archiveSource: stage.transitionArchiveSource ?? false,
+          sourceStageId: source.droppableId ?? null,
+        });
         setTransitionOpen(true);
       }
+      return;
+    }
+
+    if (stage?.transitionMode === "AUTO" && movedLead) {
+      triggerAutoTransition(movedLead, stage, source.droppableId);
     }
   };
 
@@ -349,8 +430,10 @@ export default function DashboardPage() {
           setTransitionOpen(open);
           if (!open) {
             setTransitionLead(null);
+            setTransitionRule(null);
           }
         }}
+        initialRule={transitionRule ?? undefined}
       />
     </div>
   );

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError } from "@/lib/http";
 import { pipelineCreateSchema } from "@/lib/validators";
+import { generateUniqueWebhookSlug, generateWebhookToken } from "@/lib/pipeline";
 
 export async function GET() {
   const pipelines = await prisma.pipeline.findMany({
@@ -32,25 +33,53 @@ export async function POST(request: Request) {
 
     const { name, color, stages } = parsed.data;
 
-    const pipeline = await prisma.pipeline.create({
-      data: {
-        name,
-        color,
-        stages: {
-          create: stages.map((stage, index) => ({
-            name: stage.name,
-            position: index,
-          })),
+    const pipeline = await prisma.$transaction(async (tx) => {
+      const webhookToken = generateWebhookToken();
+      const webhookSlug = await generateUniqueWebhookSlug(prisma, name);
+
+      const created = await tx.pipeline.create({
+        data: {
+          name,
+          color,
+          webhookToken,
+          webhookSlug,
+          stages: {
+            create: stages.map((stage, index) => ({
+              name: stage.name,
+              position: index,
+              transitionMode: stage.transitionMode ?? "NONE",
+              transitionTargetPipelineId:
+                stage.transitionMode && stage.transitionMode !== "NONE"
+                  ? stage.transitionTargetPipelineId ?? null
+                  : null,
+              transitionTargetStageId:
+                stage.transitionMode && stage.transitionMode !== "NONE"
+                  ? stage.transitionTargetStageId ?? null
+                  : null,
+              transitionCopyActivities: stage.transitionCopyActivities ?? true,
+              transitionArchiveSource: stage.transitionArchiveSource ?? false,
+            })),
+          },
         },
-      },
-      include: {
-        stages: {
-          orderBy: { position: "asc" },
+        include: {
+          stages: {
+            orderBy: { position: "asc" },
+          },
+          _count: {
+            select: { stages: true, leads: true },
+          },
         },
-        _count: {
-          select: { stages: true, leads: true },
-        },
-      },
+      });
+
+      const defaultStage = created.stages[0];
+      if (defaultStage) {
+        await tx.pipeline.update({
+          where: { id: created.id },
+          data: { webhookDefaultStageId: defaultStage.id },
+        });
+      }
+
+      return created;
     });
 
     return NextResponse.json({ pipeline }, { status: 201 });

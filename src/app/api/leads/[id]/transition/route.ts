@@ -18,7 +18,7 @@ export async function POST(
     return jsonError(parsed.error.errors[0]?.message ?? "Dados inválidos", 422);
   }
 
-  const { pipelineId: targetPipelineId, stageId, copyActivities, archiveOriginal } = parsed.data;
+  const { targetPipelineId, targetStageId, copyActivities, archiveSource } = parsed.data;
 
   const lead = await prisma.lead.findUnique({
     where: { id },
@@ -55,8 +55,8 @@ export async function POST(
     return jsonError("O funil destino não possui etapas.", 422);
   }
 
-  const stageToUse = stageId
-    ? targetPipeline.stages.find((stage) => stage.id === stageId) ?? targetPipeline.stages[0]
+  const stageToUse = targetStageId
+    ? targetPipeline.stages.find((stage) => stage.id === targetStageId) ?? targetPipeline.stages[0]
     : targetPipeline.stages[0];
 
   const duplicateLead = await prisma.lead.findFirst({
@@ -116,7 +116,7 @@ export async function POST(
     }
   }
 
-  if (archiveOriginal) {
+  if (archiveSource) {
     await prisma.lead.update({
       where: { id },
       data: { archived: true },
@@ -125,7 +125,8 @@ export async function POST(
 
   return NextResponse.json({
     newLeadId: newLead.id,
-    pipelineId: targetPipeline.id,
-    pipelineName: targetPipeline.name,
+    targetPipelineId: targetPipeline.id,
+    targetPipelineName: targetPipeline.name,
+    targetStageId: stageToUse.id,
   });
 }

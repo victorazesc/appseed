@@ -30,9 +30,16 @@ type LeadTransitionDialogProps = {
   lead: LeadSummary | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialRule?: {
+    pipelineId?: string | null;
+    stageId?: string | null;
+    copyActivities?: boolean;
+    archiveSource?: boolean;
+    sourceStageId?: string | null;
+  };
 };
 
-export function LeadTransitionDialog({ lead, open, onOpenChange }: LeadTransitionDialogProps) {
+export function LeadTransitionDialog({ lead, open, onOpenChange, initialRule }: LeadTransitionDialogProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { pipelines } = usePipelines();
@@ -42,10 +49,11 @@ export function LeadTransitionDialog({ lead, open, onOpenChange }: LeadTransitio
   const form = useForm<FormValues>({
     resolver: zodResolver(leadTransitionSchema),
     defaultValues: {
-      pipelineId: "",
-      stageId: "",
+      targetPipelineId: "",
+      targetStageId: "",
       copyActivities: true,
-      archiveOriginal: false,
+      archiveSource: false,
+      sourceStageId: lead?.stageId ?? lead?.stage?.id ?? undefined,
     },
   });
 
@@ -57,44 +65,70 @@ export function LeadTransitionDialog({ lead, open, onOpenChange }: LeadTransitio
     [pipelines, lead?.pipelineId],
   );
 
-  const targetPipelineId = watch("pipelineId");
+  const targetPipelineId = watch("targetPipelineId");
   const targetPipeline = useMemo(
     () => availablePipelines.find((pipeline) => pipeline.id === targetPipelineId),
     [availablePipelines, targetPipelineId],
   );
   const targetStages = targetPipeline?.stages ?? [];
-  const currentStageId = watch("stageId");
+  const targetStageId = watch("targetStageId");
 
   useEffect(() => {
-    if (open) {
-      const defaultPipeline = availablePipelines[0];
-      reset({
-        pipelineId: defaultPipeline?.id ?? "",
-        stageId: defaultPipeline?.stages?.[0]?.id ?? "",
-        copyActivities: true,
-        archiveOriginal: false,
-      });
-    }
-  }, [open, availablePipelines, reset]);
+    if (!open) return;
+
+    const preferredPipeline = initialRule?.pipelineId
+      ? availablePipelines.find((pipeline) => pipeline.id === initialRule.pipelineId) ?? availablePipelines[0]
+      : availablePipelines[0];
+
+    const hasStage = (stageId?: string | null) =>
+      Boolean(stageId && preferredPipeline?.stages?.some((stage) => stage.id === stageId));
+
+    const fallbackStage = preferredPipeline?.stages?.[0]?.id ?? "";
+
+    reset({
+      targetPipelineId: preferredPipeline?.id ?? "",
+      targetStageId: hasStage(initialRule?.stageId) ? (initialRule?.stageId as string) : fallbackStage,
+      copyActivities: initialRule?.copyActivities ?? true,
+      archiveSource: initialRule?.archiveSource ?? false,
+      sourceStageId: initialRule?.sourceStageId ?? lead?.stageId ?? lead?.stage?.id ?? undefined,
+    });
+  }, [
+    open,
+    availablePipelines,
+    reset,
+    initialRule?.pipelineId,
+    initialRule?.stageId,
+    initialRule?.copyActivities,
+    initialRule?.archiveSource,
+    initialRule?.sourceStageId,
+    lead?.stage?.id,
+    lead?.stageId,
+  ]);
 
   useEffect(() => {
-    if (!targetPipeline) return;
-    if (!targetPipeline.stages?.length) {
-      setValue("stageId", "");
+    if (!targetPipeline) {
+      setValue("targetStageId", "");
       return;
     }
-    if (!targetPipeline.stages.some((stage) => stage.id === currentStageId)) {
-      setValue("stageId", targetPipeline.stages[0]?.id ?? "");
+    if (!targetPipeline.stages?.length) {
+      setValue("targetStageId", "");
+      return;
     }
-  }, [targetPipeline, setValue, currentStageId]);
+    if (!targetPipeline.stages.some((stage) => stage.id === targetStageId)) {
+      setValue("targetStageId", targetPipeline.stages[0]?.id ?? "");
+    }
+  }, [targetPipeline, setValue, targetStageId]);
 
   const onSubmit = handleSubmit(async (values) => {
-    if (!lead || !values.pipelineId) return;
+    if (!lead || !values.targetPipelineId) return;
 
     try {
       const payload = {
-        ...values,
-        stageId: values.stageId || undefined,
+        targetPipelineId: values.targetPipelineId,
+        targetStageId: values.targetStageId || undefined,
+        copyActivities: values.copyActivities,
+        archiveSource: values.archiveSource,
+        sourceStageId: values.sourceStageId ?? lead.stageId ?? lead.stage?.id,
       };
 
       const response = await fetch(`/api/leads/${lead.id}/transition`, {
@@ -118,12 +152,12 @@ export function LeadTransitionDialog({ lead, open, onOpenChange }: LeadTransitio
         queryClient.invalidateQueries({ queryKey: ["pipelines"] }),
       ]);
 
-      toast.success(modalCopy.success.replace("{{pipeline}}", body.pipelineName), {
+      toast.success(modalCopy.success.replace("{{pipeline}}", body.targetPipelineName), {
         action: {
           label: modalCopy.open,
           onClick: () => {
             const params = new URLSearchParams(window.location.search);
-            params.set("pipelineId", body.pipelineId);
+            params.set("pipelineId", body.targetPipelineId);
             router.push(`/dashboard?${params.toString()}#lead-${body.newLeadId}`);
           },
         },
@@ -152,7 +186,7 @@ export function LeadTransitionDialog({ lead, open, onOpenChange }: LeadTransitio
               id="transition-pipeline"
               className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               disabled={!availablePipelines.length}
-              {...register("pipelineId")}
+              {...register("targetPipelineId")}
             >
               {availablePipelines.map((pipeline) => (
                 <option key={pipeline.id} value={pipeline.id}>
@@ -160,8 +194,8 @@ export function LeadTransitionDialog({ lead, open, onOpenChange }: LeadTransitio
                 </option>
               ))}
             </select>
-            {errors.pipelineId ? (
-              <p className="text-xs text-destructive">{errors.pipelineId.message}</p>
+            {errors.targetPipelineId ? (
+              <p className="text-xs text-destructive">{errors.targetPipelineId.message}</p>
             ) : null}
             {!availablePipelines.length ? (
               <p className="text-xs text-muted-foreground">{modalCopy.empty}</p>
@@ -174,7 +208,7 @@ export function LeadTransitionDialog({ lead, open, onOpenChange }: LeadTransitio
               id="transition-stage"
               className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               disabled={!targetStages.length}
-              {...register("stageId")}
+              {...register("targetStageId")}
             >
               {targetStages.map((stage) => (
                 <option key={stage.id} value={stage.id}>
@@ -182,8 +216,8 @@ export function LeadTransitionDialog({ lead, open, onOpenChange }: LeadTransitio
                 </option>
               ))}
             </select>
-            {errors.stageId ? (
-              <p className="text-xs text-destructive">{errors.stageId.message}</p>
+            {errors.targetStageId ? (
+              <p className="text-xs text-destructive">{errors.targetStageId.message}</p>
             ) : null}
           </div>
 
@@ -202,7 +236,7 @@ export function LeadTransitionDialog({ lead, open, onOpenChange }: LeadTransitio
               )}
             />
             <Controller
-              name="archiveOriginal"
+              name="archiveSource"
               control={control}
               render={({ field }) => (
                 <Label className="flex items-center gap-2 text-sm">

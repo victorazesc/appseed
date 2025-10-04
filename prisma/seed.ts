@@ -1,4 +1,5 @@
 import { addHours, addDays } from "date-fns";
+import { randomBytes } from "crypto";
 import { ActivityType, PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -8,6 +9,14 @@ async function main() {
   await prisma.lead.deleteMany();
   await prisma.stage.deleteMany();
   await prisma.pipeline.deleteMany();
+
+  function generateToken() {
+    return randomBytes(32).toString("hex");
+  }
+
+  function generateSlug(name: string) {
+    return `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}-${randomBytes(4).toString("hex")}`;
+  }
 
   const pipelinesData = [
     {
@@ -45,6 +54,8 @@ async function main() {
       data: {
         name: data.name,
         color: data.color,
+        webhookToken: generateToken(),
+        webhookSlug: generateSlug(data.name),
         stages: {
           create: data.stages.map((stageName, index) => ({
             name: stageName,
@@ -54,6 +65,14 @@ async function main() {
       },
       include: { stages: true },
     });
+
+    const defaultStageId = created.stages[0]?.id;
+    if (defaultStageId) {
+      await prisma.pipeline.update({
+        where: { id: created.id },
+        data: { webhookDefaultStageId: defaultStageId },
+      });
+    }
 
     pipelines.push({
       pipeline: created,

@@ -78,6 +78,67 @@ type CrmTranslations = {
     created?: string;
     saved?: string;
     error?: string;
+    tabs: {
+      details: string;
+      webhook: string;
+    };
+    stageRules: {
+      title: string;
+      subtitle: string;
+      stageName: string;
+      triggerLabel: string;
+      triggerDescription: string;
+      modeLabel: string;
+      manual: string;
+      auto: string;
+      targetPipeline: string;
+      targetStage: string;
+      selectPipeline: string;
+      selectStage: string;
+      copyActivities: string;
+      archiveSource: string;
+      moveUp: string;
+      moveDown: string;
+      remove: string;
+    };
+    webhook: {
+      disabled: string;
+      endpointTitle: string;
+      idLabel: string;
+      slugLabel: string;
+      methodHint: string;
+      tokenLabel: string;
+      tokenHelper: string;
+      copy: string;
+      rotate: string;
+      rotateConfirm: string;
+      rotateSuccess: string;
+      rotateError: string;
+      copied: string;
+      tokenCopied: string;
+      copyError: string;
+      defaultStageLabel: string;
+      defaultStageFallback: string;
+      stageUpdated: string;
+      stageError: string;
+      exampleTitle: string;
+      exampleSubtitle: string;
+      testButton: string;
+      error: string;
+      test: {
+        title: string;
+        description: string;
+        payloadLabel: string;
+        payloadHelper: string;
+        invalidJson: string;
+        missingToken: string;
+        error: string;
+        statusLabel: string;
+        cancel: string;
+        submit: string;
+        submitting: string;
+      };
+    };
   };
   leadTransition: {
     title: string;
@@ -134,6 +195,8 @@ type CrmTranslations = {
     leadCount: string;
     dropHere: string;
     totalValue: string;
+    ruleManual: string;
+    ruleAuto: string;
   };
   leadCard: {
     createdAt: string;
@@ -941,6 +1004,69 @@ export const translations: Record<Language, {
         created: "Funil criado com sucesso",
         saved: "Funil atualizado",
         error: "Não foi possível salvar o funil.",
+        tabs: {
+          details: "Detalhes",
+          webhook: "Webhook",
+        },
+        stageRules: {
+          title: "Regras por etapa",
+          subtitle: "Configure gatilhos de transição para cada etapa do funil.",
+          stageName: "Nome da etapa",
+          triggerLabel: "Dispara transição",
+          triggerDescription: "Aciona movimentação automática ou modal ao entrar na etapa.",
+          modeLabel: "Modo",
+          manual: "Manual",
+          auto: "Automática",
+          targetPipeline: "Funil destino",
+          targetStage: "Etapa inicial no destino",
+          selectPipeline: "Selecione um funil",
+          selectStage: "Selecione uma etapa",
+          copyActivities: "Copiar atividades (últimos 30 dias)",
+          archiveSource: "Arquivar lead original após mover",
+          moveUp: "Mover etapa para cima",
+          moveDown: "Mover etapa para baixo",
+          remove: "Remover etapa",
+        },
+        webhook: {
+          disabled: "Salve o funil para configurar o webhook.",
+          endpointTitle: "Endpoint",
+          idLabel: "URL por ID",
+          slugLabel: "URL por slug",
+          methodHint: "Envie requisições HTTP POST com JSON no corpo.",
+          tokenLabel: "Token de autenticação",
+          tokenHelper: "Use como Bearer token no header Authorization.",
+          copy: "Copiar",
+          rotate: "Rotacionar token",
+          rotateConfirm: "Deseja gerar um novo token? O token atual deixará de funcionar.",
+          rotateSuccess: "Token rotacionado com sucesso.",
+          rotateError: "Não foi possível rotacionar o token.",
+          copied: "Copiado para a área de transferência.",
+          tokenCopied: "Token copiado para a área de transferência.",
+          copyError: "Falha ao copiar. Tente novamente.",
+          defaultStageLabel: "Etapa padrão",
+          defaultStageFallback: "Primeira etapa do funil",
+          stageUpdated: "Etapa padrão atualizada.",
+          stageError: "Não foi possível atualizar a etapa padrão.",
+          exampleTitle: "Exemplo de requisição",
+          exampleSubtitle:
+            "Use este cURL como referência para integrar formulários ou serviços externos.",
+          testButton: "Enviar teste",
+          error: "Não foi possível carregar as informações do webhook.",
+          test: {
+            title: "Testar webhook",
+            description: "Envie uma requisição de teste usando o payload abaixo.",
+            payloadLabel: "Payload JSON",
+            payloadHelper:
+              "Edite os dados antes de enviar. Campos obrigatórios: name, email ou phone.",
+            invalidJson: "JSON inválido. Verifique o formato do payload.",
+            missingToken: "Token não disponível. Gere um novo token e tente novamente.",
+            error: "Não foi possível enviar o teste. Tente novamente.",
+            statusLabel: "Status HTTP",
+            cancel: "Cancelar",
+            submit: "Enviar teste",
+            submitting: "Enviando...",
+          },
+        },
       },
       leadTransition: {
         title: "Mover lead para outro funil",
@@ -997,6 +1123,8 @@ export const translations: Record<Language, {
         leadCount: "{{count}} leads",
         dropHere: "Solte aqui",
         totalValue: "Total: {{total}}",
+        ruleManual: "Regra: Manual",
+        ruleAuto: "Regra: Automática",
       },
       leadCard: {
         createdAt: "Criado {{date}}",
@@ -1660,6 +1788,69 @@ export const translations: Record<Language, {
         created: "Pipeline created successfully",
         saved: "Pipeline updated",
         error: "We couldn't save the pipeline.",
+        tabs: {
+          details: "Details",
+          webhook: "Webhook",
+        },
+        stageRules: {
+          title: "Stage rules",
+          subtitle: "Configure transition triggers for each stage.",
+          stageName: "Stage name",
+          triggerLabel: "Trigger transition",
+          triggerDescription:
+            "Open the modal or move automatically when a lead enters this stage.",
+          modeLabel: "Mode",
+          manual: "Manual",
+          auto: "Automatic",
+          targetPipeline: "Destination pipeline",
+          targetStage: "Destination starting stage",
+          selectPipeline: "Select a pipeline",
+          selectStage: "Select a stage",
+          copyActivities: "Copy activities (last 30 days)",
+          archiveSource: "Archive original lead after moving",
+          moveUp: "Move stage up",
+          moveDown: "Move stage down",
+          remove: "Remove stage",
+        },
+        webhook: {
+          disabled: "Save the pipeline to configure the webhook.",
+          endpointTitle: "Endpoint",
+          idLabel: "URL by ID",
+          slugLabel: "URL by slug",
+          methodHint: "Send HTTP POST requests with a JSON payload.",
+          tokenLabel: "Authentication token",
+          tokenHelper: "Use it as a Bearer token in the Authorization header.",
+          copy: "Copy",
+          rotate: "Rotate token",
+          rotateConfirm: "Generate a new token? The current token will stop working.",
+          rotateSuccess: "Token rotated successfully.",
+          rotateError: "We couldn't rotate the token.",
+          copied: "Copied to clipboard.",
+          tokenCopied: "Token copied to clipboard.",
+          copyError: "Could not copy. Try again.",
+          defaultStageLabel: "Default stage",
+          defaultStageFallback: "First stage of the pipeline",
+          stageUpdated: "Default stage updated.",
+          stageError: "We couldn't update the default stage.",
+          exampleTitle: "Request example",
+          exampleSubtitle: "Use this cURL snippet as a reference for external integrations.",
+          testButton: "Send test",
+          error: "We couldn't load the webhook configuration.",
+          test: {
+            title: "Test webhook",
+            description: "Send a test request with the payload below.",
+            payloadLabel: "JSON payload",
+            payloadHelper:
+              "Edit the data before sending. Required fields: name plus email or phone.",
+            invalidJson: "Invalid JSON. Check the payload format.",
+            missingToken: "Token unavailable. Generate a new token and try again.",
+            error: "We couldn't send the test. Try again.",
+            statusLabel: "HTTP status",
+            cancel: "Cancel",
+            submit: "Send test",
+            submitting: "Sending...",
+          },
+        },
       },
       leadTransition: {
         title: "Move lead to another pipeline",
@@ -1716,6 +1907,8 @@ export const translations: Record<Language, {
         leadCount: "{{count}} leads",
         dropHere: "Drop here",
         totalValue: "Total: {{total}}",
+        ruleManual: "Rule: Manual",
+        ruleAuto: "Rule: Automatic",
       },
       leadCard: {
         createdAt: "Created {{date}}",
@@ -2377,7 +2570,70 @@ export const translations: Record<Language, {
         stageNameRequired: "Ingresa los nombres de las etapas",
         created: "Embudo creado con éxito",
         saved: "Embudo actualizado",
-        error: "No pudimos guardar el embudo.",
+       error: "No pudimos guardar el embudo.",
+        tabs: {
+          details: "Detalles",
+          webhook: "Webhook",
+        },
+        stageRules: {
+          title: "Reglas por etapa",
+          subtitle: "Configura disparos de transición para cada etapa del embudo.",
+          stageName: "Nombre de la etapa",
+          triggerLabel: "Dispara transición",
+          triggerDescription: "Abre el modal o mueve automáticamente al entrar en la etapa.",
+          modeLabel: "Modo",
+          manual: "Manual",
+          auto: "Automática",
+          targetPipeline: "Embudo destino",
+          targetStage: "Etapa inicial en el destino",
+          selectPipeline: "Selecciona un embudo",
+          selectStage: "Selecciona una etapa",
+          copyActivities: "Copiar actividades (últimos 30 días)",
+          archiveSource: "Archivar lead original después de mover",
+          moveUp: "Mover etapa hacia arriba",
+          moveDown: "Mover etapa hacia abajo",
+          remove: "Eliminar etapa",
+        },
+        webhook: {
+          disabled: "Guarda el embudo para configurar el webhook.",
+          endpointTitle: "Endpoint",
+          idLabel: "URL por ID",
+          slugLabel: "URL por slug",
+          methodHint: "Envía solicitudes HTTP POST con JSON en el cuerpo.",
+          tokenLabel: "Token de autenticación",
+          tokenHelper: "Úsalo como Bearer token en el header Authorization.",
+          copy: "Copiar",
+          rotate: "Rotar token",
+          rotateConfirm: "¿Generar un nuevo token? El token actual dejará de funcionar.",
+          rotateSuccess: "Token rotado con éxito.",
+          rotateError: "No pudimos rotar el token.",
+          copied: "Copiado al portapapeles.",
+          tokenCopied: "Token copiado al portapapeles.",
+          copyError: "No se pudo copiar. Intenta nuevamente.",
+          defaultStageLabel: "Etapa predeterminada",
+          defaultStageFallback: "Primera etapa del embudo",
+          stageUpdated: "Etapa predeterminada actualizada.",
+          stageError: "No pudimos actualizar la etapa predeterminada.",
+          exampleTitle: "Ejemplo de solicitud",
+          exampleSubtitle:
+            "Usa este cURL como referencia para integrar formularios o servicios externos.",
+          testButton: "Enviar prueba",
+          error: "No pudimos cargar la configuración del webhook.",
+          test: {
+            title: "Probar webhook",
+            description: "Envía una solicitud de prueba usando el payload siguiente.",
+            payloadLabel: "Payload JSON",
+            payloadHelper:
+              "Edita los datos antes de enviar. Campos obligatorios: name más email o teléfono.",
+            invalidJson: "JSON inválido. Verifica el formato del payload.",
+            missingToken: "Token no disponible. Genera uno nuevo e inténtalo nuevamente.",
+            error: "No pudimos enviar la prueba. Intenta nuevamente.",
+            statusLabel: "Estado HTTP",
+            cancel: "Cancelar",
+            submit: "Enviar prueba",
+            submitting: "Enviando...",
+          },
+        },
       },
       leadTransition: {
         title: "Mover lead a otro embudo",
@@ -2434,6 +2690,8 @@ export const translations: Record<Language, {
         leadCount: "{{count}} leads",
         dropHere: "Suelta aquí",
         totalValue: "Total: {{total}}",
+        ruleManual: "Regla: Manual",
+        ruleAuto: "Regla: Automática",
       },
       leadCard: {
         createdAt: "Creado {{date}}",

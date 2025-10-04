@@ -1,6 +1,7 @@
 "use client";
 
 import { Draggable, Droppable } from "@hello-pangea/dnd";
+import { Settings2 } from "lucide-react";
 
 import { LeadSummary, Stage } from "@/types";
 
@@ -50,6 +51,10 @@ export function StageColumn({ stage, leads, onOpenLead, onAddActivity }: StageCo
   const formattedTotal = formatCurrency(totalValueCents, { locale });
   const totalLabel = crm.stageColumn.totalValue.replace("{{total}}", formattedTotal);
   const isLossStage = ["Perda", "Lost", "Perdido"].includes(stage.name);
+  const transitionMode = stage.transitionMode ?? "NONE";
+  const hasTransitionRule = transitionMode !== "NONE";
+
+  const ruleLabel = transitionMode === "MANUAL" ? crm.stageColumn.ruleManual : crm.stageColumn.ruleAuto;
 
   return (
     <div
@@ -67,6 +72,15 @@ export function StageColumn({ stage, leads, onOpenLead, onAddActivity }: StageCo
             {leadBadgeLabel}
           </Badge>
           <p className="mt-1 text-xs font-medium text-muted-foreground">{totalLabel}</p>
+          {hasTransitionRule ? (
+            <Badge
+              variant="outline"
+              className="mt-2 flex w-max items-center gap-1 text-[10px] font-semibold uppercase tracking-wide"
+            >
+              <Settings2 className="h-3 w-3" aria-hidden />
+              {ruleLabel}
+            </Badge>
+          ) : null}
         </div>
       </div>
 
