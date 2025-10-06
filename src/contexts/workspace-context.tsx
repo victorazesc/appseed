@@ -88,10 +88,14 @@ export function WorkspaceProvider({ children, initialContext }: WorkspaceProvide
   const membershipsQuery = useQuery({
     queryKey: ["workspace-memberships"],
     queryFn: fetchMemberships,
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
   });
+
+  useEffect(() => {
+    if (membershipsQuery.isError) {
+      const err = membershipsQuery.error as Error | null;
+      toast.error(err?.message ?? "Erro ao carregar workspaces do usuário.");
+    }
+  }, [membershipsQuery.isError, membershipsQuery.error]);
 
   const workspaceQuery = useQuery({
     queryKey: ["workspace", currentSlug],
@@ -99,10 +103,14 @@ export function WorkspaceProvider({ children, initialContext }: WorkspaceProvide
     enabled: Boolean(currentSlug),
     initialData: workspaceInitialData,
     initialDataUpdatedAt: workspaceInitialData ? Date.now() : undefined,
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
   });
+
+  useEffect(() => {
+    if (workspaceQuery.isError) {
+      const err = workspaceQuery.error as Error | null;
+      toast.error(err?.message ?? "Erro ao carregar workspace atual.");
+    }
+  }, [workspaceQuery.isError, workspaceQuery.error]);
 
   const setActiveWorkspace = useCallback(
     (slug: string) => {

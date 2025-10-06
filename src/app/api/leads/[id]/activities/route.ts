@@ -13,7 +13,10 @@ export async function POST(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { workspace } = await requireWorkspaceFromRequest(request, { minimumRole: WorkspaceRole.MEMBER });
+    const { workspace, membership } = await requireWorkspaceFromRequest(request);
+    if (!membership || membership.role === WorkspaceRole.VIEWER) {
+      return jsonError("Acesso negado", 403);
+    }
     const { id } = await context.params;
     const payload = await request.json();
     const parsed = activityCreateSchema.safeParse(payload);

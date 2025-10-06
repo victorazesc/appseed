@@ -53,20 +53,25 @@ export function PipelineProvider({ children, initialPipelines, initialPipelineId
   const workspaceSlug = workspace?.slug;
   const storageKey = workspaceSlug ? `${PIPELINE_STORAGE_KEY}:${workspaceSlug}` : PIPELINE_STORAGE_KEY;
 
-  const { data: pipelines = [], isLoading, isFetching, refetch } = useQuery({
+  const pipelinesQuery = useQuery({
     queryKey: ["pipelines", workspaceSlug],
     queryFn: () => fetchPipelines(workspaceSlug!),
     enabled: Boolean(workspaceSlug),
     initialData: initialPipelines,
     initialDataUpdatedAt: initialPipelines ? Date.now() : undefined,
-    onError: (error: Error) => {
-      toast.error(error.message);
+  });
+  const { data: pipelines = [], isLoading, isFetching, refetch } = pipelinesQuery;
+
+  useEffect(() => {
+    if (pipelinesQuery.isError) {
+      const err = pipelinesQuery.error as Error | null;
+      toast.error(err?.message ?? "Erro ao carregar funis.");
       setActivePipelineIdState(null);
       if (typeof window !== "undefined" && workspaceSlug) {
         window.localStorage.removeItem(storageKey);
       }
-    },
-  });
+    }
+  }, [pipelinesQuery.isError, pipelinesQuery.error, workspaceSlug, storageKey]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

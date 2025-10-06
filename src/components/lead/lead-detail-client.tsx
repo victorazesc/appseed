@@ -97,8 +97,14 @@ export function LeadDetailClient({ leadId }: Props) {
       return data.lead;
     },
     enabled: Boolean(workspaceSlug),
-    onError: (error: Error) => toast.error(error.message),
   });
+  useEffect(() => {
+    if (leadQuery.isError) {
+      const err = leadQuery.error as Error | null;
+      if (err?.message) toast.error(err.message);
+      else toast.error("Erro ao carregar lead.");
+    }
+  }, [leadQuery.isError, leadQuery.error]);
   const lead = leadQuery.data;
   const hasAlternativePipelines = useMemo(
     () => pipelines.some((pipeline) => pipeline.id !== (lead?.pipeline?.id ?? lead?.pipelineId ?? "")),
@@ -116,8 +122,14 @@ export function LeadDetailClient({ leadId }: Props) {
       return data.stages.sort((a, b) => a.position - b.position);
     },
     enabled: Boolean(leadQuery.data?.pipeline?.id && workspaceSlug),
-    onError: (error: Error) => toast.error(error.message),
   });
+  useEffect(() => {
+    if (stagesQuery.isError) {
+      const err = stagesQuery.error as Error | null;
+      if (err?.message) toast.error(err.message);
+      else toast.error("Erro ao carregar etapas do funil.");
+    }
+  }, [stagesQuery.isError, stagesQuery.error]);
 
   const updateLeadMutation = useMutation({
     mutationFn: (payload: LeadUpdatePayload) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -71,7 +71,7 @@ export function AppShell({ children, user }: AppShellProps) {
     [workspaceSlug, pathname, navLabels],
   );
 
-  const { data: notificationLeads } = useQuery({
+  const notificationLeadsQuery = useQuery({
     queryKey: ["notifications", workspaceSlug ?? "unknown", user?.email ?? "anonymous"],
     queryFn: async () => {
       if (!user || !workspaceSlug) return [] as LeadSummary[];
@@ -81,11 +81,20 @@ export function AppShell({ children, user }: AppShellProps) {
     },
     enabled: Boolean(user && workspaceSlug),
     staleTime: 1000 * 30,
-    onError: (error: Error) => {
-      console.error("notifications fetch", error);
-      toast.error(error.message);
-    },
   });
+  const notificationLeads = notificationLeadsQuery.data;
+
+  useEffect(() => {
+    if (notificationLeadsQuery?.isError) {
+      const err = notificationLeadsQuery.error as Error | null;
+      if (err?.message) {
+        console.error("notifications fetch", err);
+        toast.error(err.message);
+      } else {
+        toast.error("Erro ao carregar notificações.");
+      }
+    }
+  }, [notificationLeadsQuery?.isError, notificationLeadsQuery?.error]);
 
   const handleCreatePipeline = () => {
     setPipelineToEdit(undefined);

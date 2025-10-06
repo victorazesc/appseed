@@ -58,7 +58,10 @@ export async function PATCH(
   const { id } = await params;
 
   try {
-    const { workspace } = await requireWorkspaceFromRequest(request, { minimumRole: WorkspaceRole.ADMIN });
+    const { workspace, membership } = await requireWorkspaceFromRequest(request);
+    if (!membership || (membership.role !== WorkspaceRole.ADMIN && membership.role !== WorkspaceRole.OWNER)) {
+      return jsonError("Acesso negado", 403);
+    }
 
     const existing = await prisma.pipeline.findFirst({
       where: { id, workspaceId: workspace.id, archived: false },
@@ -187,7 +190,10 @@ export async function DELETE(
   const { id } = await params;
 
   try {
-    const { workspace } = await requireWorkspaceFromRequest(request, { minimumRole: WorkspaceRole.ADMIN });
+    const { workspace, membership } = await requireWorkspaceFromRequest(request);
+    if (!membership || (membership.role !== WorkspaceRole.ADMIN && membership.role !== WorkspaceRole.OWNER)) {
+      return jsonError("Acesso negado", 403);
+    }
 
     const existing = await prisma.pipeline.findFirst({
       where: { id, workspaceId: workspace.id, archived: false },

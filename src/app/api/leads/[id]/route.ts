@@ -63,9 +63,9 @@ export async function GET(
       ...lead,
       pipeline: lead.pipeline
         ? {
-            id: lead.pipeline.id,
-            name: lead.pipeline.name,
-          }
+          id: lead.pipeline.id,
+          name: lead.pipeline.name,
+        }
         : null,
     };
 
@@ -87,7 +87,10 @@ export async function PATCH(
 ) {
   try {
     const { id } = await context.params;
-    const { workspace } = await requireWorkspaceFromRequest(request, { minimumRole: WorkspaceRole.MEMBER });
+    const { workspace, membership } = await requireWorkspaceFromRequest(request);
+    if (!membership || membership.role === WorkspaceRole.VIEWER) {
+      return jsonError("Acesso negado", 403);
+    }
     const payload = await request.json();
     const parsed = leadUpdateSchema.safeParse(payload);
 

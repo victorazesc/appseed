@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { toast } from "sonner";
@@ -50,8 +50,15 @@ export default function MetricsPage() {
       return data;
     },
     enabled: Boolean(activePipelineId && workspaceSlug),
-    onError: (error: Error) => toast.error(error.message),
   });
+
+  useEffect(() => {
+    if (metricsQuery.isError) {
+      const err = metricsQuery.error as Error | null;
+      if (err?.message) toast.error(err.message);
+      else toast.error("Erro ao carregar métricas.");
+    }
+  }, [metricsQuery.isError, metricsQuery.error]);
 
   const chartData = useMemo(() => {
     if (!metricsQuery.data) return [];

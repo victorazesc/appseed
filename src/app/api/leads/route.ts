@@ -102,11 +102,11 @@ export async function GET(request: Request) {
         ...(ownerId ? { ownerId } : {}),
         ...(q
           ? {
-              OR: [
-                { name: { contains: q, mode: "insensitive" } },
-                { email: { contains: q, mode: "insensitive" } },
-              ],
-            }
+            OR: [
+              { name: { contains: q, mode: "insensitive" } },
+              { email: { contains: q, mode: "insensitive" } },
+            ],
+          }
           : {}),
       },
       include: {
@@ -160,7 +160,10 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { workspace } = await requireWorkspaceFromRequest(request, { minimumRole: WorkspaceRole.MEMBER });
+    const { workspace, membership } = await requireWorkspaceFromRequest(request);
+    if (!membership || membership.role === WorkspaceRole.VIEWER) {
+      return jsonError("Acesso negado", 403);
+    }
     const payload = await request.json();
     const parsed = leadCreateSchema.safeParse(payload);
 

@@ -12,7 +12,10 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { workspace } = await requireWorkspaceFromRequest(request, { minimumRole: WorkspaceRole.MEMBER });
+    const { workspace, membership } = await requireWorkspaceFromRequest(request);
+    if (!membership || membership.role === WorkspaceRole.VIEWER) {
+      return jsonError("Acesso negado", 403);
+    }
     const { id } = await params;
 
     const payload = await request.json();

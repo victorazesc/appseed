@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { DragDropContext, type DropResult } from "@hello-pangea/dnd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -96,8 +96,18 @@ export default function DashboardPage() {
       return data.leads;
     },
     enabled: Boolean(activePipelineId && workspaceSlug),
-    onError: (error: Error) => toast.error(error.message),
   });
+
+  useEffect(() => {
+    if (leadsQuery.isError) {
+      const err = leadsQuery.error as Error | null;
+      if (err?.message) {
+        toast.error(err.message);
+      } else {
+        toast.error("Erro ao carregar leads.");
+      }
+    }
+  }, [leadsQuery.isError, leadsQuery.error]);
 
   const createLeadMutation = useMutation({
     mutationFn: async ({ notes, ...payload }: CreateLeadInput) => {

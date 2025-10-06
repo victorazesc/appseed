@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
@@ -29,7 +29,7 @@ export default function ClientsPage() {
   const { workspace, isLoading: isWorkspaceLoading } = useWorkspace();
   const workspaceSlug = workspace?.slug;
 
-  const leadsQuery = useQuery({
+  const leadsQuery = useQuery<LeadSummary[], Error>({
     queryKey: buildKey(workspaceSlug, query, activePipelineId ?? undefined),
     queryFn: async () => {
       if (!activePipelineId || !workspaceSlug) return [] as LeadSummary[];
@@ -42,8 +42,15 @@ export default function ClientsPage() {
       return data.leads;
     },
     enabled: Boolean(activePipelineId && workspaceSlug),
-    onError: (error: Error) => toast.error(error.message),
   });
+
+  useEffect(() => {
+    if (leadsQuery.isError) {
+      const err = leadsQuery.error as Error | null;
+      if (err?.message) toast.error(err.message);
+      else toast.error("Erro ao carregar clientes.");
+    }
+  }, [leadsQuery.isError, leadsQuery.error]);
 
   const leads = useMemo(() => leadsQuery.data ?? [], [leadsQuery.data]);
 

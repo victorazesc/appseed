@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo } from "react";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   KanbanSquare,
   Users,
@@ -11,7 +11,6 @@ import {
   UserRound,
   LifeBuoy,
   Send,
-  Plus,
 } from "lucide-react";
 
 import {
@@ -26,7 +25,6 @@ import { useWorkspace } from "@/contexts/workspace-context";
 import { WorkspaceSidebarSwitcher } from "@/components/workspace/sidebar-workspace-switcher";
 import { SidebarPipelineSwitcher } from "@/components/pipeline/sidebar-pipeline-switcher";
 import { SidebarUserMenu } from "@/components/sidebar-user-menu";
-import { Button } from "@/components/ui/button";
 
 const DEFAULT_NAV = [
   { key: "funnel", url: "/dashboard", icon: KanbanSquare },
@@ -59,7 +57,6 @@ export function AppSidebar({
   onEditPipeline,
   ...props
 }: AppSidebarProps) {
-  const router = useRouter();
   const pathname = usePathname();
   const { messages } = useTranslation();
   const { workspace } = useWorkspace();

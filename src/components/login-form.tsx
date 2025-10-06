@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
@@ -40,20 +41,24 @@ type LoginFormProps = React.ComponentProps<"div"> & {
 type State = "idle" | "credentials" | "google";
 
 export function LoginForm({ className, defaultEmail, resetSuccess, ...props }: LoginFormProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/auth/post-login";
+
   const [state, setState] = useState<State>("idle");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleGoogle = useCallback(async () => {
     try {
       setState("google");
-      await signIn("google", { callbackUrl: "/auth/post-login" });
+      await signIn("google", { callbackUrl });
     } catch (error) {
       console.error("signin google", error);
       toast.error("Erro inesperado ao autenticar com Google.");
     } finally {
       setState("idle");
     }
-  }, []);
+  }, [callbackUrl]);
 
   const handleSubmit = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
@@ -84,16 +89,25 @@ export function LoginForm({ className, defaultEmail, resetSuccess, ...props }: L
         const result = await signIn("credentials", {
           email: parsed.data.email,
           password: parsed.data.password,
-          callbackUrl: "/auth/post-login",
+          redirect: false,
         });
 
-        if (result?.error) {
-          toast.error("Credenciais inválidas. Verifique os dados e tente novamente.");
+        if (!result) {
+          toast.error("Falha ao iniciar sessão.");
           setState("idle");
           return;
         }
 
+        if (result.error) {
+          toast.error(result.error === "CredentialsSignin" ? "Credenciais inválidas. Verifique os dados." : result.error);
+          setState("idle");
+          return;
+        }
+
+        // Login OK: navega manualmente para o destino e força reidratação da sessão
         toast.success("Autenticado com sucesso");
+        router.replace(callbackUrl);
+        router.refresh();
         return;
       } catch (error) {
         console.error("signin credentials", error);
@@ -102,7 +116,7 @@ export function LoginForm({ className, defaultEmail, resetSuccess, ...props }: L
         setState("idle");
       }
     },
-    [],
+    [callbackUrl, router],
   );
 
   const isLoading = state !== "idle";

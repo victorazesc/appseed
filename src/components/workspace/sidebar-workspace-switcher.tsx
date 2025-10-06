@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Check, ChevronDown, Circle } from "lucide-react";
 
 import { useWorkspace } from "@/contexts/workspace-context";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -78,13 +77,15 @@ export function WorkspaceSidebarSwitcher() {
           );
         })}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => router.push("/onboarding/create-workspace")}>
+       <DropdownMenuItem onSelect={() => router.push("/onboarding/create-workspace")}>
           Criar novo workspace
         </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={() =>
             router.push(
-              activeSlug ? `/${activeSlug}/settings?section=members` : "/settings?section=members",
+              activeSlug
+                ? `/${activeSlug}/settings?section=members`
+                : "/auth/post-login?section=members",
             )
           }
         >

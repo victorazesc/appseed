@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { WorkspaceRole } from "@prisma/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -88,6 +88,14 @@ export function WorkspaceMembersSection() {
     enabled: Boolean(workspaceSlug),
   });
 
+  useEffect(() => {
+    if (membersQuery.isError) {
+      const err = membersQuery.error as Error | null;
+      if (err?.message) toast.error(err.message);
+      else toast.error("Erro ao carregar membros do workspace.");
+    }
+  }, [membersQuery.isError, membersQuery.error]);
+
   const updateRoleMutation = useMutation({
     mutationFn: ({ memberId, newRole }: { memberId: string; newRole: WorkspaceRole }) =>
       apiFetch<{ membership: MemberResponse }>(`/api/members/${memberId}`, {
@@ -167,12 +175,12 @@ export function WorkspaceMembersSection() {
               value={inviteEmail}
               onChange={(event) => setInviteEmail(event.target.value)}
               required
-              disabled={inviteMutation.isLoading}
+              disabled={inviteMutation.isPending}
             />
             <Select
               value={inviteRole}
               onChange={(event) => setInviteRole(event.target.value as WorkspaceRole)}
-              disabled={inviteMutation.isLoading}
+              disabled={inviteMutation.isPending}
             >
               {ROLE_OPTIONS.map((option) => (
                 <option key={option} value={option}>
@@ -180,8 +188,8 @@ export function WorkspaceMembersSection() {
                 </option>
               ))}
             </Select>
-            <Button type="submit" disabled={inviteMutation.isLoading}>
-              {inviteMutation.isLoading ? "Enviando..." : "Enviar convite"}
+            <Button type="submit" disabled={inviteMutation.isPending}>
+              {inviteMutation.isPending ? "Enviando..." : "Enviar convite"}
             </Button>
           </form>
         ) : null}
@@ -216,7 +224,7 @@ export function WorkspaceMembersSection() {
                   const memberName = member.user.name ?? member.user.email ?? "Usuário";
                   const inviteInfo = member.invitedBy?.name ?? member.invitedBy?.email ?? "—";
                   const isCurrentUser = currentUserId === member.user.id;
-                  const disableRoleSelect = !canManage || isCurrentUser || updateRoleMutation.isLoading;
+                  const disableRoleSelect = !canManage || isCurrentUser || updateRoleMutation.isPending;
                   const allowRemove = isCurrentUser || canManage;
                   const removeLabel = isCurrentUser ? "Sair" : "Remover";
 
@@ -263,7 +271,7 @@ export function WorkspaceMembersSection() {
                             size="sm"
                             className={isCurrentUser ? "text-muted-foreground" : "text-destructive"}
                             onClick={() => removeMemberMutation.mutateAsync(member.id)}
-                            disabled={removeMemberMutation.isLoading}
+                            disabled={removeMemberMutation.isPending}
                           >
                             {removeLabel}
                           </Button>

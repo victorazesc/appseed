@@ -1,5 +1,5 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import type { Adapter } from "next-auth/adapters";
+import type { Adapter } from "@auth/core/adapters";
 import NextAuth, { type NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
@@ -91,7 +91,7 @@ if (env.AUTH_GOOGLE_ID && env.AUTH_GOOGLE_SECRET) {
   );
 }
 
-const adapter: Adapter = PrismaAdapter(prisma);
+const adapter: Adapter = PrismaAdapter(prisma) as unknown as Adapter;
 
 export const {
   auth,
@@ -153,7 +153,7 @@ export const {
       }
 
       session.user.id = (token.id as string) ?? "";
-      session.user.email = (token.email as string | null | undefined) ?? null;
+      session.user.email = (token.email as string | null | undefined) ?? "";
       session.user.name = (token.name as string | null | undefined) ?? null;
       session.user.image = (token.picture as string | null | undefined) ?? null;
       session.user.globalRole = (token.globalRole as GlobalRole | undefined) ?? GlobalRole.USER;

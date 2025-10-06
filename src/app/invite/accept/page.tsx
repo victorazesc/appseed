@@ -5,8 +5,11 @@ import { AcceptInviteForm } from "@/components/workspace/accept-invite-form";
 
 const paramsSchema = z.object({ token: z.string().min(10) });
 
-export default async function AcceptInvitePage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
-  const parsed = paramsSchema.safeParse({ token: searchParams.token });
+type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+export default async function AcceptInvitePage({ searchParams }: { searchParams: PageSearchParams }) {
+  const params = await searchParams;
+  const parsed = paramsSchema.safeParse({ token: params.token });
 
   if (!parsed.success) {
     return <InvalidInvite />;

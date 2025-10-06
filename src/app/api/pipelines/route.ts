@@ -11,20 +11,20 @@ export async function GET(request: Request) {
   try {
     const { workspace } = await requireWorkspaceFromRequest(request, { minimumRole: WorkspaceRole.VIEWER });
 
-  const pipelines = await prisma.pipeline.findMany({
-    where: { archived: false, workspaceId: workspace.id },
-    include: {
-      stages: {
-        orderBy: { position: "asc" },
+    const pipelines = await prisma.pipeline.findMany({
+      where: { archived: false, workspaceId: workspace.id },
+      include: {
+        stages: {
+          orderBy: { position: "asc" },
+        },
+        _count: {
+          select: { stages: true, leads: true },
+        },
       },
-      _count: {
-        select: { stages: true, leads: true },
-      },
-    },
-    orderBy: { createdAt: "asc" },
-  });
+      orderBy: { createdAt: "asc" },
+    });
 
-  return NextResponse.json({ pipelines });
+    return NextResponse.json({ pipelines });
   } catch (error) {
     console.error("GET /api/pipelines", error);
     if (error instanceof Error && error.message === "WORKSPACE_REQUIRED") {
@@ -42,7 +42,10 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { workspace } = await requireWorkspaceFromRequest(request, { minimumRole: WorkspaceRole.ADMIN });
+    const { workspace, membership } = await requireWorkspaceFromRequest(request);
+    if (!membership || (membership.role !== WorkspaceRole.ADMIN && membership.role !== WorkspaceRole.OWNER)) {
+      return jsonError("Acesso negado", 403);
+    }
     const payload = await request.json();
     const parsed = pipelineCreateSchema.safeParse(payload);
 
