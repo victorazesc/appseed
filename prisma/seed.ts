@@ -1,6 +1,6 @@
 import { addHours, addDays } from "date-fns";
 import { randomBytes } from "crypto";
-import { ActivityType, Prisma, PrismaClient, WorkspaceRole } from "@prisma/client";
+import { ActivityType, Prisma, PrismaClient } from "@prisma/client";
 
 import { hashPassword } from "../src/lib/password";
 
@@ -51,7 +51,7 @@ async function main() {
       memberships: {
         create: {
           userId: adminUser.id,
-          role: WorkspaceRole.OWNER,
+          role: "OWNER",
         },
       },
     },
