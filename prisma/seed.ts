@@ -1,7 +1,6 @@
-// @ts-nocheck
 import { addHours, addDays } from "date-fns";
 import { randomBytes } from "crypto";
-import { ActivityType, Prisma, PrismaClient } from "@prisma/client";
+import { ActivityType, GlobalRole, Prisma, PrismaClient, WorkspaceRole } from "@prisma/client";
 
 import { hashPassword } from "../src/lib/password";
 
@@ -37,7 +36,7 @@ async function main() {
       email: "admin@appseed.dev",
       name: "Admin Seed",
       passwordHash: adminPassword,
-      globalRole: "ADMIN_GLOBAL",
+      globalRole: GlobalRole.ADMIN_GLOBAL,
       emailVerified: new Date(),
       onboardingComplete: true,
     },
@@ -52,7 +51,7 @@ async function main() {
       memberships: {
         create: {
           userId: adminUser.id,
-          role: "OWNER",
+          role: WorkspaceRole.OWNER,
         },
       },
     },

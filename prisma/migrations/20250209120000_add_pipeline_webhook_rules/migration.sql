@@ -26,9 +26,12 @@ ALTER TABLE "Lead"
 
 CREATE INDEX IF NOT EXISTS "Lead_archived_idx" ON "Lead" ("archived");
 
--- Optional: update existing pipelines with generated slug/token
 UPDATE "Pipeline"
 SET
-  "webhookToken" = encode(gen_random_bytes(32), 'hex'),
-  "webhookSlug" = concat(lower(regexp_replace("name", '[^a-z0-9]+', '-', 'g')), '-', substr(encode(gen_random_bytes(4), 'hex'), 1, 8))
+  "webhookToken" = md5(random()::text || clock_timestamp()::text || coalesce("id", '')),
+  "webhookSlug" = concat(
+    lower(regexp_replace("name", '[^a-z0-9]+', '-', 'g')),
+    '-',
+    substr(md5(random()::text || clock_timestamp()::text || coalesce("id", '')), 1, 8)
+  )
 WHERE "webhookToken" IS NULL;

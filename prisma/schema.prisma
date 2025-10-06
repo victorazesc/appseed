@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 enum ActivityType {
@@ -40,27 +41,27 @@ enum UserTokenPurpose {
 }
 
 model User {
-  id                 String      @id @default(cuid())
-  email              String      @unique
+  id                 String     @id @default(cuid())
+  email              String     @unique
   name               String?
   image              String?
   passwordHash       String?
   emailVerified      DateTime?
-  globalRole         GlobalRole  @default(USER)
-  onboardingComplete Boolean     @default(false)
+  globalRole         GlobalRole @default(USER)
+  onboardingComplete Boolean    @default(false)
   lastLoginAt        DateTime?
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
 
-  accounts          Account[]
-  sessions          Session[]
-  memberships       Membership[]
-  membershipsInvited Membership[] @relation("MembershipInvitedBy")
-  invitesCreated    Invite[]            @relation("InviteCreator")
-  workspacesCreated Workspace[]         @relation("WorkspaceCreator")
-  auditLogs         AuditLog[]          @relation("AuditActor")
-  impersonations    ImpersonationSession[] @relation("Impersonator")
-  tokens            UserToken[]
+  accounts           Account[]
+  sessions           Session[]
+  memberships        Membership[]
+  membershipsInvited Membership[]           @relation("MembershipInvitedBy")
+  invitesCreated     Invite[]               @relation("InviteCreator")
+  workspacesCreated  Workspace[]            @relation("WorkspaceCreator")
+  auditLogs          AuditLog[]             @relation("AuditActor")
+  impersonations     ImpersonationSession[] @relation("Impersonator")
+  tokens             UserToken[]
 }
 
 model Account {
@@ -102,20 +103,20 @@ model VerificationToken {
 }
 
 model Workspace {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
-  slug        String    @unique
-  color       String    @default("#16A34A")
-  archived    Boolean   @default(false)
+  slug        String   @unique
+  color       String   @default("#16A34A")
+  archived    Boolean  @default(false)
   createdById String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  createdBy User? @relation("WorkspaceCreator", fields: [createdById], references: [id])
-  memberships Membership[]
-  invites      Invite[]
-  pipelines    Pipeline[]
-  auditLogs    AuditLog[]
+  createdBy      User?                  @relation("WorkspaceCreator", fields: [createdById], references: [id])
+  memberships    Membership[]
+  invites        Invite[]
+  pipelines      Pipeline[]
+  auditLogs      AuditLog[]
   impersonations ImpersonationSession[]
 }
 
@@ -137,30 +138,30 @@ model Membership {
 }
 
 model Invite {
-  id           String        @id @default(cuid())
-  email        String
-  token        String        @unique
-  role         WorkspaceRole @default(MEMBER)
-  workspaceId  String
-  createdById  String
-  acceptedAt   DateTime?
-  expiresAt    DateTime
-  createdAt    DateTime      @default(now())
+  id          String        @id @default(cuid())
+  email       String
+  token       String        @unique
+  role        WorkspaceRole @default(MEMBER)
+  workspaceId String
+  createdById String
+  acceptedAt  DateTime?
+  expiresAt   DateTime
+  createdAt   DateTime      @default(now())
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdBy User      @relation("InviteCreator", fields: [createdById], references: [id])
 }
 
 model UserToken {
-  id         String            @id @default(cuid())
+  id         String           @id @default(cuid())
   userId     String?
   email      String?
-  token      String            @unique
+  token      String           @unique
   purpose    UserTokenPurpose
   expiresAt  DateTime
   consumedAt DateTime?
   metadata   Json?
-  createdAt  DateTime          @default(now())
+  createdAt  DateTime         @default(now())
 
   user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -185,10 +186,10 @@ model AuditLog {
 }
 
 model ImpersonationSession {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   adminUserId String
   workspaceId String
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
   endedAt     DateTime?
 
   admin     User      @relation("Impersonator", fields: [adminUserId], references: [id], onDelete: Cascade)
@@ -199,37 +200,37 @@ model ImpersonationSession {
 }
 
 model Pipeline {
-  id        String   @id @default(cuid())
-  name      String
-  color     String   @default("#16A34A")
-  archived  Boolean  @default(false)
-  webhookToken String? @unique
-  webhookSlug  String? @unique
+  id                    String    @id @default(cuid())
+  name                  String
+  color                 String    @default("#16A34A")
+  archived              Boolean   @default(false)
+  webhookToken          String?   @unique
+  webhookSlug           String?   @unique
   webhookDefaultStageId String?
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  workspaceId String    @default("legacy-workspace")
-  stages    Stage[]
-  leads     Lead[]
-  createdAt DateTime @default(now())
+  workspace             Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId           String    @default("legacy-workspace")
+  stages                Stage[]
+  leads                 Lead[]
+  createdAt             DateTime  @default(now())
 
   @@unique([workspaceId, name])
   @@index([workspaceId])
 }
 
 model Stage {
-  id         String   @id @default(cuid())
-  name       String
-  position   Int
-  pipeline   Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
-  pipelineId String
-  leads      Lead[]
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  transitionMode StageTransitionMode @default(NONE)
+  id                         String              @id @default(cuid())
+  name                       String
+  position                   Int
+  pipeline                   Pipeline            @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  pipelineId                 String
+  leads                      Lead[]
+  createdAt                  DateTime            @default(now())
+  updatedAt                  DateTime            @updatedAt
+  transitionMode             StageTransitionMode @default(NONE)
   transitionTargetPipelineId String?
   transitionTargetStageId    String?
-  transitionCopyActivities   Boolean @default(true)
-  transitionArchiveSource    Boolean @default(false)
+  transitionCopyActivities   Boolean             @default(true)
+  transitionArchiveSource    Boolean             @default(false)
 
   @@unique([pipelineId, position])
   @@unique([pipelineId, name])
@@ -237,21 +238,21 @@ model Stage {
 }
 
 model Lead {
-  id         String    @id @default(cuid())
+  id         String     @id @default(cuid())
   name       String
   email      String?
   phone      String?
   company    String?
   valueCents Int?
   ownerId    String?
-  pipeline   Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  pipeline   Pipeline   @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
   pipelineId String
-  stage      Stage?    @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  stage      Stage?     @relation(fields: [stageId], references: [id], onDelete: SetNull)
   stageId    String?
   activities Activity[]
-  archived   Boolean   @default(false)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  archived   Boolean    @default(false)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
 
   @@index([archived])
 }
