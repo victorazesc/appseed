@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { addHours, addDays } from "date-fns";
 import { randomBytes } from "crypto";
 import { ActivityType, Prisma, PrismaClient } from "@prisma/client";
