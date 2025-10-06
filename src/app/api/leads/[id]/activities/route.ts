@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { WorkspaceRole } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { jsonError } from "@/lib/http";
 import { activityCreateSchema } from "@/lib/validators";
-import { getCurrentUser } from "@/lib/auth";
+import { getSessionUser } from "@/lib/auth";
 import { sendEmail } from "@/lib/resend";
+import { requireWorkspaceFromRequest } from "@/lib/guards";
 
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { workspace } = await requireWorkspaceFromRequest(request, { minimumRole: WorkspaceRole.MEMBER });
     const { id } = await context.params;
     const payload = await request.json();
     const parsed = activityCreateSchema.safeParse(payload);
@@ -19,13 +22,22 @@ export async function POST(
       return jsonError("Dados inválidos", 422);
     }
 
-    const lead = await prisma.lead.findUnique({ where: { id } });
+    const lead = await prisma.lead.findUnique({
+      where: { id },
+      include: {
+        pipeline: {
+          select: {
+            workspaceId: true,
+          },
+        },
+      },
+    });
 
-    if (!lead) {
+    if (!lead || lead.pipeline?.workspaceId !== workspace.id) {
       return jsonError("Lead não encontrado", 404);
     }
 
-    const user = await getCurrentUser();
+    const user = await getSessionUser();
     const dueAt = parsed.data.dueAt ?? null;
 
     if (parsed.data.type === "task" && !dueAt) {
@@ -65,6 +77,15 @@ export async function POST(
     return NextResponse.json({ activity }, { status: 201 });
   } catch (error) {
     console.error("POST /api/leads/[id]/activities", error);
+    if (error instanceof Error && error.message === "WORKSPACE_REQUIRED") {
+      return jsonError("Workspace não informado", 400);
+    }
+    if (error instanceof Error && error.message === "FORBIDDEN") {
+      return jsonError("Acesso negado", 403);
+    }
+    if (error instanceof Error && error.message === "WORKSPACE_NOT_FOUND") {
+      return jsonError("Workspace não encontrado", 404);
+    }
     return jsonError("Erro interno", 500);
   }
 }

@@ -26,6 +26,7 @@ export type Pipeline = {
   webhookToken?: string | null;
   webhookSlug?: string | null;
   webhookDefaultStageId?: string | null;
+  workspaceId?: string;
 };
 
 export type PipelineWebhookConfig = {

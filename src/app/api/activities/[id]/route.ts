@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { WorkspaceRole } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { jsonError } from "@/lib/http";
+import { requireWorkspaceFromRequest } from "@/lib/guards";
 
 export async function PATCH(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { workspace } = await requireWorkspaceFromRequest(request, { minimumRole: WorkspaceRole.MEMBER });
     const { id } = await context.params;
     const payload = await request.json().catch(() => ({}));
 
@@ -15,9 +18,22 @@ export async function PATCH(
       return jsonError("Ação inválida", 400);
     }
 
-    const activity = await prisma.activity.findUnique({ where: { id } });
+    const activity = await prisma.activity.findUnique({
+      where: { id },
+      include: {
+        lead: {
+          select: {
+            pipeline: {
+              select: {
+                workspaceId: true,
+              },
+            },
+          },
+        },
+      },
+    });
 
-    if (!activity) {
+    if (!activity || activity.lead?.pipeline?.workspaceId !== workspace.id) {
       return jsonError("Atividade não encontrada", 404);
     }
 
@@ -37,6 +53,15 @@ export async function PATCH(
     return NextResponse.json({ activity: updated });
   } catch (error) {
     console.error(`PATCH /api/activities/[id]`, error);
+    if (error instanceof Error && error.message === "WORKSPACE_REQUIRED") {
+      return jsonError("Workspace não informado", 400);
+    }
+    if (error instanceof Error && error.message === "FORBIDDEN") {
+      return jsonError("Acesso negado", 403);
+    }
+    if (error instanceof Error && error.message === "WORKSPACE_NOT_FOUND") {
+      return jsonError("Workspace não encontrado", 404);
+    }
     return jsonError("Erro interno", 500);
   }
 }

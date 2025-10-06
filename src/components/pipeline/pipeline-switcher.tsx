@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useActivePipeline, usePipelines } from "@/contexts/pipeline-context";
 import { useTranslation } from "@/contexts/i18n-context";
+import { useWorkspace } from "@/contexts/workspace-context";
 import Link from "next/link";
 
 type PipelineSwitcherProps = {
@@ -25,6 +26,7 @@ export function PipelineSwitcher({ onCreatePipeline, onEditPipeline }: PipelineS
   const { pipelines, isLoading, isFetching, setActivePipelineId } = usePipelines();
   const { activePipeline } = useActivePipeline();
   const { messages } = useTranslation();
+  const { workspace } = useWorkspace();
 
   const switcherCopy = messages.crm.pipelineSwitcher;
   const label = useMemo(() => switcherCopy.title ?? "Funil ativo", [switcherCopy]);
@@ -58,6 +60,9 @@ export function PipelineSwitcher({ onCreatePipeline, onEditPipeline }: PipelineS
     if (!activePipeline) return;
     onEditPipeline?.();
   };
+
+  const workspaceSlug = workspace?.slug;
+  const settingsHref = workspaceSlug ? `/${workspaceSlug}/settings` : "/settings";
 
   return (
     <>
@@ -97,7 +102,7 @@ export function PipelineSwitcher({ onCreatePipeline, onEditPipeline }: PipelineS
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
-            <Link href="/settings" className="flex w-full items-center gap-2">
+            <Link href={settingsHref} className="flex w-full items-center gap-2">
               <Settings2 className="h-4 w-4" />
               {switcherCopy.manage}
             </Link>

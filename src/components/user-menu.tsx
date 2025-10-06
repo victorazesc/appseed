@@ -53,7 +53,7 @@ export function UserMenu({ user }: UserMenuProps) {
           className={cn("gap-2 text-sm text-destructive focus:text-destructive")}
           onSelect={(event) => {
             event.preventDefault();
-            void signOut({ callbackUrl: "/signin" });
+            void signOut({ callbackUrl: "/auth/sign-in" });
           }}
         >
           <LogOut className="h-4 w-4" />

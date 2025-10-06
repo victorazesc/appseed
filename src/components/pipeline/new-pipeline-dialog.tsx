@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   useFieldArray,
   useForm,
@@ -28,6 +28,7 @@ import { Select } from "@/components/ui/select";
 import { pipelineCreateSchema, pipelineUpdateSchema } from "@/lib/validators";
 import { useTranslation } from "@/contexts/i18n-context";
 import { useActivePipeline, usePipelines } from "@/contexts/pipeline-context";
+import { useWorkspace } from "@/contexts/workspace-context";
 import { apiFetch } from "@/lib/api-client";
 import type { Pipeline, PipelineWebhookConfig, Stage } from "@/types";
 import { cn } from "@/lib/utils";
@@ -82,6 +83,16 @@ export function NewPipelineDialog({ open, onOpenChange, pipeline }: NewPipelineD
   const webhookCopy = modalCopy.webhook;
   const tabsCopy = modalCopy.tabs;
   const stageRulesCopy = modalCopy.stageRules;
+  const { workspace } = useWorkspace();
+  const workspaceSlug = workspace?.slug;
+  const appendWorkspace = useCallback(
+    (url: string) => {
+      if (!workspaceSlug) return url;
+      const separator = url.includes("?") ? "&" : "?";
+      return `${url}${separator}workspaceSlug=${encodeURIComponent(workspaceSlug)}`;
+    },
+    [workspaceSlug],
+  );
 
   const [activeTab, setActiveTab] = useState<"details" | "webhook">("details");
   const [webhookConfig, setWebhookConfig] = useState<PipelineWebhookConfig | null>(null);
@@ -145,9 +156,15 @@ export function NewPipelineDialog({ open, onOpenChange, pipeline }: NewPipelineD
       return;
     }
 
+    if (!workspaceSlug) {
+      setWebhookConfig(null);
+      setWebhookError(webhookCopy.error);
+      return;
+    }
+
     let isActive = true;
     setWebhookLoading(true);
-    apiFetch<PipelineWebhookConfig>(`/api/pipelines/${pipeline.id}/webhook`)
+    apiFetch<PipelineWebhookConfig>(appendWorkspace(`/api/pipelines/${pipeline.id}/webhook`))
       .then((config) => {
         if (!isActive) return;
         setWebhookConfig(config);
@@ -167,7 +184,7 @@ export function NewPipelineDialog({ open, onOpenChange, pipeline }: NewPipelineD
     return () => {
       isActive = false;
     };
-  }, [open, pipeline?.id, webhookCopy.error]);
+  }, [appendWorkspace, open, pipeline?.id, webhookCopy.error, workspaceSlug]);
 
   const handleAddStage = () => {
     append(createEmptyStage(""));
@@ -179,8 +196,12 @@ export function NewPipelineDialog({ open, onOpenChange, pipeline }: NewPipelineD
     if (!confirmed) return;
 
     try {
+      if (!workspaceSlug) {
+        toast.error("Workspace não selecionado");
+        return;
+      }
       const response = await apiFetch<{ token: string; tokenPreview: string }>(
-        `/api/pipelines/${pipeline.id}/webhook/rotate`,
+        appendWorkspace(`/api/pipelines/${pipeline.id}/webhook/rotate`),
         {
           method: "POST",
         },
@@ -216,7 +237,11 @@ export function NewPipelineDialog({ open, onOpenChange, pipeline }: NewPipelineD
     if (!pipeline?.id) return;
 
     try {
-      const response = await apiFetch<{ defaultStageId: string | null }>(`/api/pipelines/${pipeline.id}/webhook`, {
+      if (!workspaceSlug) {
+        toast.error("Workspace não selecionado");
+        return;
+      }
+      const response = await apiFetch<{ defaultStageId: string | null }>(appendWorkspace(`/api/pipelines/${pipeline.id}/webhook`), {
         method: "PATCH",
         body: JSON.stringify({ defaultStageId: stageId }),
       });
@@ -260,15 +285,19 @@ export function NewPipelineDialog({ open, onOpenChange, pipeline }: NewPipelineD
     };
 
     try {
+      if (!workspaceSlug) {
+        toast.error("Workspace não selecionado");
+        return;
+      }
       if (pipeline?.id) {
-        await apiFetch(`/api/pipelines/${pipeline.id}`, {
+        await apiFetch(appendWorkspace(`/api/pipelines/${pipeline.id}`), {
           method: "PATCH",
           body: JSON.stringify(payload),
         });
         await refetch();
         toast.success(modalCopy.saved ?? "Funil atualizado");
       } else {
-        const response = await apiFetch<{ pipeline: Pipeline }>(`/api/pipelines`, {
+        const response = await apiFetch<{ pipeline: Pipeline }>(appendWorkspace(`/api/pipelines`), {
           method: "POST",
           body: JSON.stringify(payload),
         });

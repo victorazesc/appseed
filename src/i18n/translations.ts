@@ -170,6 +170,57 @@ type CrmTranslations = {
       deleted: string;
       deleteConfirm: string;
     };
+    members: {
+      title: string;
+      subtitle: string;
+    };
+    preferences: {
+      title: string;
+      subtitle: string;
+      workspace: {
+        title: string;
+        subtitle: string;
+        nameLabel: string;
+        namePlaceholder: string;
+        nameDescription: string;
+        colorLabel: string;
+        colorDescription: string;
+        save: string;
+        saving: string;
+        updatedToast: string;
+        noChangesToast: string;
+        invalidWorkspace: string;
+        permissionWarning: string;
+        validation: {
+          nameRequired: string;
+        };
+      };
+      account: {
+        title: string;
+        subtitle: string;
+        name: string;
+        email: string;
+        login: string;
+        loginSocial: string;
+        loginCredentials: string;
+        lastLogin: string;
+        providers: string;
+        noProviders: string;
+        empty: string;
+        error: string;
+      };
+      experience: {
+        title: string;
+        subtitle: string;
+        themeLabel: string;
+        themeDescription: string;
+        themeUpdatedDark: string;
+        themeUpdatedLight: string;
+        languageLabel: string;
+        languageDescription: string;
+        languageUpdated: string;
+      };
+    };
   };
   dashboard: {
     title: string;
@@ -1098,6 +1149,57 @@ export const translations: Record<Language, {
           deleted: "Funil removido.",
           deleteConfirm: "Tem certeza que deseja excluir este funil?",
         },
+        members: {
+          title: "Membros",
+          subtitle: "Convide e gerencie usuários com acesso ao workspace.",
+        },
+        preferences: {
+          title: "Preferências",
+          subtitle: "Personalize o workspace, tema e idioma do produto.",
+          workspace: {
+            title: "Workspace",
+            subtitle: "Atualize o nome e a cor principal utilizados na interface.",
+            nameLabel: "Nome do workspace",
+            namePlaceholder: "Ex.: Vendas Brasil",
+            nameDescription: "Esse nome aparece na barra lateral, convites e notificações.",
+            colorLabel: "Cor principal",
+            colorDescription: "Essa cor é usada nos destaques, gráficos e indicadores do workspace.",
+            save: "Salvar alterações",
+            saving: "Salvando...",
+            updatedToast: "Workspace atualizado com sucesso.",
+            noChangesToast: "Nenhuma alteração para salvar.",
+            invalidWorkspace: "Workspace não encontrado.",
+            permissionWarning: "Você precisa ser administrador para editar essas informações.",
+            validation: {
+              nameRequired: "Informe o nome do workspace.",
+            },
+          },
+          account: {
+            title: "Sua conta",
+            subtitle: "Consulte suas informações e o método de acesso utilizado.",
+            name: "Nome",
+            email: "E-mail",
+            login: "Método de login",
+            loginSocial: "Social ({{provider}})",
+            loginCredentials: "E-mail e senha",
+            lastLogin: "Último acesso",
+            providers: "Contas conectadas",
+            noProviders: "Nenhuma conta social conectada.",
+            empty: "—",
+            error: "Não foi possível carregar os dados da conta.",
+          },
+          experience: {
+            title: "Experiência",
+            subtitle: "Escolha como deseja visualizar o produto.",
+            themeLabel: "Tema",
+            themeDescription: "Altere entre tema claro ou escuro conforme sua preferência.",
+            themeUpdatedDark: "Tema escuro ativado.",
+            themeUpdatedLight: "Tema claro ativado.",
+            languageLabel: "Idioma",
+            languageDescription: "Defina o idioma da interface.",
+            languageUpdated: "Idioma alterado para {{language}}.",
+          },
+        },
       },
       dashboard: {
         title: "Funil de Vendas",
@@ -1882,6 +1984,57 @@ export const translations: Record<Language, {
           deleted: "Pipeline removed.",
           deleteConfirm: "Are you sure you want to delete this pipeline?",
         },
+        members: {
+          title: "Members",
+          subtitle: "Invite and manage the people who can access this workspace.",
+        },
+        preferences: {
+          title: "Preferences",
+          subtitle: "Customize workspace details, theme, and language.",
+          workspace: {
+            title: "Workspace",
+            subtitle: "Update the workspace name and main color used across the interface.",
+            nameLabel: "Workspace name",
+            namePlaceholder: "E.g. Sales Brazil",
+            nameDescription: "This name appears in the sidebar, invites, and notifications.",
+            colorLabel: "Primary color",
+            colorDescription: "Used for highlights, charts, and workspace status indicators.",
+            save: "Save changes",
+            saving: "Saving...",
+            updatedToast: "Workspace updated successfully.",
+            noChangesToast: "No changes to apply.",
+            invalidWorkspace: "Workspace not found.",
+            permissionWarning: "You need to be an administrator to edit these settings.",
+            validation: {
+              nameRequired: "Enter the workspace name.",
+            },
+          },
+          account: {
+            title: "Your account",
+            subtitle: "Review your information and how you sign in.",
+            name: "Name",
+            email: "Email",
+            login: "Login method",
+            loginSocial: "Social ({{provider}})",
+            loginCredentials: "Email and password",
+            lastLogin: "Last sign-in",
+            providers: "Connected accounts",
+            noProviders: "No social accounts connected.",
+            empty: "—",
+            error: "We couldn't load your account data.",
+          },
+          experience: {
+            title: "Experience",
+            subtitle: "Choose how you want to use the product.",
+            themeLabel: "Theme",
+            themeDescription: "Switch between light and dark modes whenever you like.",
+            themeUpdatedDark: "Dark theme enabled.",
+            themeUpdatedLight: "Light theme enabled.",
+            languageLabel: "Language",
+            languageDescription: "Select the interface language.",
+            languageUpdated: "Language changed to {{language}}.",
+          },
+        },
       },
       dashboard: {
         title: "Sales Pipeline",
@@ -2664,6 +2817,57 @@ export const translations: Record<Language, {
           empty: "Aún no hay embudos.",
           deleted: "Embudo eliminado.",
           deleteConfirm: "¿Seguro que deseas eliminar este embudo?",
+        },
+        members: {
+          title: "Miembros",
+          subtitle: "Invita y administra a las personas con acceso al workspace.",
+        },
+        preferences: {
+          title: "Preferencias",
+          subtitle: "Personaliza el workspace, el tema y el idioma del producto.",
+          workspace: {
+            title: "Espacio de trabajo",
+            subtitle: "Actualiza el nombre y el color principal utilizados en la interfaz.",
+            nameLabel: "Nombre del workspace",
+            namePlaceholder: "Ej.: Ventas Brasil",
+            nameDescription: "Este nombre aparece en la barra lateral, invitaciones y notificaciones.",
+            colorLabel: "Color principal",
+            colorDescription: "Se utiliza en destacados, gráficos e indicadores del workspace.",
+            save: "Guardar cambios",
+            saving: "Guardando...",
+            updatedToast: "Workspace actualizado correctamente.",
+            noChangesToast: "No hay cambios para guardar.",
+            invalidWorkspace: "Workspace no encontrado.",
+            permissionWarning: "Necesitas ser administrador para editar esta información.",
+            validation: {
+              nameRequired: "Ingresa el nombre del workspace.",
+            },
+          },
+          account: {
+            title: "Tu cuenta",
+            subtitle: "Consulta tus datos y el método de acceso utilizado.",
+            name: "Nombre",
+            email: "Correo electrónico",
+            login: "Método de acceso",
+            loginSocial: "Social ({{provider}})",
+            loginCredentials: "Correo y contraseña",
+            lastLogin: "Último acceso",
+            providers: "Cuentas conectadas",
+            noProviders: "Ninguna cuenta social conectada.",
+            empty: "—",
+            error: "No pudimos cargar los datos de la cuenta.",
+          },
+          experience: {
+            title: "Experiencia",
+            subtitle: "Define cómo quieres ver el producto.",
+            themeLabel: "Tema",
+            themeDescription: "Cambia entre tema claro u oscuro cuando quieras.",
+            themeUpdatedDark: "Tema oscuro activado.",
+            themeUpdatedLight: "Tema claro activado.",
+            languageLabel: "Idioma",
+            languageDescription: "Selecciona el idioma de la interfaz.",
+            languageUpdated: "Idioma cambiado a {{language}}.",
+          },
         },
       },
       dashboard: {

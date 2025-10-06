@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError } from "@/lib/http";
 import { pipelineUpdateSchema } from "@/lib/validators";
+import { requireWorkspaceFromRequest } from "@/lib/guards";
+import { WorkspaceRole } from "@prisma/client";
 
 function includeConfig() {
   return {
@@ -16,21 +18,37 @@ function includeConfig() {
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
 
-  const pipeline = await prisma.pipeline.findUnique({
-    where: { id },
-    include: includeConfig(),
-  });
+  try {
+    const { workspace } = await requireWorkspaceFromRequest(request, { minimumRole: WorkspaceRole.VIEWER });
 
-  if (!pipeline) {
-    return jsonError("Funil não encontrado", 404);
+    const pipeline = await prisma.pipeline.findFirst({
+      where: { id, workspaceId: workspace.id, archived: false },
+      include: includeConfig(),
+    });
+
+    if (!pipeline) {
+      return jsonError("Funil não encontrado", 404);
+    }
+
+    return NextResponse.json({ pipeline });
+  } catch (error) {
+    console.error(`GET /api/pipelines/${id}`, error);
+    if (error instanceof Error && error.message === "WORKSPACE_REQUIRED") {
+      return jsonError("Workspace não informado", 400);
+    }
+    if (error instanceof Error && error.message === "FORBIDDEN") {
+      return jsonError("Acesso negado", 403);
+    }
+    if (error instanceof Error && error.message === "WORKSPACE_NOT_FOUND") {
+      return jsonError("Workspace não encontrado", 404);
+    }
+    return jsonError("Erro interno", 500);
   }
-
-  return NextResponse.json({ pipeline });
 }
 
 export async function PATCH(
@@ -39,25 +57,27 @@ export async function PATCH(
 ) {
   const { id } = await params;
 
-  const existing = await prisma.pipeline.findUnique({
-    where: { id },
-    include: { stages: true },
-  });
-
-  if (!existing) {
-    return jsonError("Funil não encontrado", 404);
-  }
-
-  const payload = await request.json();
-  const parsed = pipelineUpdateSchema.safeParse(payload);
-
-  if (!parsed.success) {
-    return jsonError(parsed.error.errors[0]?.message ?? "Dados inválidos", 422);
-  }
-
-  const { name, color, stages } = parsed.data;
-
   try {
+    const { workspace } = await requireWorkspaceFromRequest(request, { minimumRole: WorkspaceRole.ADMIN });
+
+    const existing = await prisma.pipeline.findFirst({
+      where: { id, workspaceId: workspace.id, archived: false },
+      include: { stages: true },
+    });
+
+    if (!existing) {
+      return jsonError("Funil não encontrado", 404);
+    }
+
+    const payload = await request.json();
+    const parsed = pipelineUpdateSchema.safeParse(payload);
+
+    if (!parsed.success) {
+      return jsonError(parsed.error.errors[0]?.message ?? "Dados inválidos", 422);
+    }
+
+    const { name, color, stages } = parsed.data;
+
     const result = await prisma.$transaction(async (tx) => {
       if (name || color) {
         await tx.pipeline.update({
@@ -73,15 +93,13 @@ export async function PATCH(
         const stageIdsFromPayload = new Set(
           stages.filter((stage) => stage.id).map((stage) => stage.id as string),
         );
-        const stagesToDelete = existing.stages.filter(
-          (stage) => !stageIdsFromPayload.has(stage.id),
-        );
+        const stagesToDelete = existing.stages.filter((stage) => !stageIdsFromPayload.has(stage.id));
 
         if (stagesToDelete.length) {
           await tx.stage.deleteMany({
             where: {
               id: { in: stagesToDelete.map((stage) => stage.id) },
-              pipelineId: id,
+              pipeline: { id, workspaceId: workspace.id },
             },
           });
         }
@@ -116,7 +134,10 @@ export async function PATCH(
         }
       }
 
-      const pipeline = await tx.pipeline.findUnique({ where: { id }, include: includeConfig() });
+      const pipeline = await tx.pipeline.findFirst({
+        where: { id, workspaceId: workspace.id },
+        include: includeConfig(),
+      });
 
       if (!pipeline) {
         return pipeline;
@@ -133,7 +154,7 @@ export async function PATCH(
             where: { id },
             data: { webhookDefaultStageId: fallbackStageId },
           });
-          return tx.pipeline.findUnique({ where: { id }, include: includeConfig() });
+          return tx.pipeline.findFirst({ where: { id, workspaceId: workspace.id }, include: includeConfig() });
         }
       }
 
@@ -143,6 +164,15 @@ export async function PATCH(
     return NextResponse.json({ pipeline: result });
   } catch (error) {
     console.error(`PATCH /api/pipelines/${id}`, error);
+    if (error instanceof Error && error.message === "WORKSPACE_REQUIRED") {
+      return jsonError("Workspace não informado", 400);
+    }
+    if (error instanceof Error && error.message === "FORBIDDEN") {
+      return jsonError("Acesso negado", 403);
+    }
+    if (error instanceof Error && error.message === "WORKSPACE_NOT_FOUND") {
+      return jsonError("Workspace não encontrado", 404);
+    }
     if (error instanceof Error && error.message.includes("Unique constraint")) {
       return jsonError("Já existe uma etapa com esse nome", 409);
     }
@@ -151,12 +181,23 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
 
   try {
+    const { workspace } = await requireWorkspaceFromRequest(request, { minimumRole: WorkspaceRole.ADMIN });
+
+    const existing = await prisma.pipeline.findFirst({
+      where: { id, workspaceId: workspace.id, archived: false },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      return jsonError("Funil não encontrado", 404);
+    }
+
     await prisma.pipeline.update({
       where: { id },
       data: { archived: true },
@@ -164,6 +205,15 @@ export async function DELETE(
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error(`DELETE /api/pipelines/${id}`, error);
+    if (error instanceof Error && error.message === "WORKSPACE_REQUIRED") {
+      return jsonError("Workspace não informado", 400);
+    }
+    if (error instanceof Error && error.message === "FORBIDDEN") {
+      return jsonError("Acesso negado", 403);
+    }
+    if (error instanceof Error && error.message === "WORKSPACE_NOT_FOUND") {
+      return jsonError("Workspace não encontrado", 404);
+    }
     return jsonError("Erro ao remover funil", 500);
   }
 }

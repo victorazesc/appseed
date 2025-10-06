@@ -1,14 +1,25 @@
 import { addHours, addDays } from "date-fns";
 import { randomBytes } from "crypto";
-import { ActivityType, Prisma, PrismaClient } from "@prisma/client";
+import { ActivityType, GlobalRole, Prisma, PrismaClient, WorkspaceRole } from "@prisma/client";
+
+import { hashPassword } from "../src/lib/password";
 
 const prisma = new PrismaClient();
 
 async function main() {
+  await prisma.impersonationSession.deleteMany();
+  await prisma.auditLog.deleteMany();
+  await prisma.userToken.deleteMany();
+  await prisma.invite.deleteMany();
+  await prisma.membership.deleteMany();
+  await prisma.session.deleteMany();
+  await prisma.account.deleteMany();
   await prisma.activity.deleteMany();
   await prisma.lead.deleteMany();
   await prisma.stage.deleteMany();
   await prisma.pipeline.deleteMany();
+  await prisma.workspace.deleteMany();
+  await prisma.user.deleteMany();
 
   function generateToken() {
     return randomBytes(32).toString("hex");
@@ -17,6 +28,34 @@ async function main() {
   function generateSlug(name: string) {
     return `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}-${randomBytes(4).toString("hex")}`;
   }
+
+  const adminPassword = await hashPassword("Password123!");
+
+  const adminUser = await prisma.user.create({
+    data: {
+      email: "admin@appseed.dev",
+      name: "Admin Seed",
+      passwordHash: adminPassword,
+      globalRole: GlobalRole.ADMIN_GLOBAL,
+      emailVerified: new Date(),
+      onboardingComplete: true,
+    },
+  });
+
+  const workspace = await prisma.workspace.create({
+    data: {
+      name: "Workspace Demo",
+      slug: "demo",
+      color: "#16A34A",
+      createdById: adminUser.id,
+      memberships: {
+        create: {
+          userId: adminUser.id,
+          role: WorkspaceRole.OWNER,
+        },
+      },
+    },
+  });
 
   const pipelinesData = [
     {
@@ -55,6 +94,9 @@ async function main() {
       color: data.color,
       webhookToken: generateToken(),
       webhookSlug: generateSlug(data.name),
+      workspace: {
+        connect: { id: workspace.id },
+      },
       stages: {
         create: data.stages.map((stageName, index) => ({
           name: stageName,

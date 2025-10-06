@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError } from "@/lib/http";
 import { leadUpdateSchema } from "@/lib/validators";
+import { requireWorkspaceFromRequest } from "@/lib/guards";
+import { WorkspaceRole } from "@prisma/client";
 
 function extractTaskMeta(activities: Array<{ type: string; dueAt: Date | null }>) {
   const now = Date.now();
@@ -22,11 +24,12 @@ function extractTaskMeta(activities: Array<{ type: string; dueAt: Date | null }>
 }
 
 export async function GET(
-  _request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await context.params;
+    const { workspace } = await requireWorkspaceFromRequest(request, { minimumRole: WorkspaceRole.VIEWER });
 
     const lead = await prisma.lead.findUnique({
       where: { id },
@@ -42,6 +45,7 @@ export async function GET(
           select: {
             id: true,
             name: true,
+            workspaceId: true,
           },
         },
         activities: {
@@ -50,15 +54,24 @@ export async function GET(
       },
     });
 
-    if (!lead) {
+    if (!lead || lead.pipeline.workspaceId !== workspace.id) {
       return jsonError("Lead não encontrado", 404);
     }
 
     const meta = extractTaskMeta(lead.activities);
+    const sanitizedLead = {
+      ...lead,
+      pipeline: lead.pipeline
+        ? {
+            id: lead.pipeline.id,
+            name: lead.pipeline.name,
+          }
+        : null,
+    };
 
     return NextResponse.json({
       lead: {
-        ...lead,
+        ...sanitizedLead,
         ...meta,
       },
     });
@@ -70,10 +83,11 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await context.params;
+    const { workspace } = await requireWorkspaceFromRequest(request, { minimumRole: WorkspaceRole.MEMBER });
     const payload = await request.json();
     const parsed = leadUpdateSchema.safeParse(payload);
 
@@ -88,11 +102,21 @@ export async function PATCH(
       include: { pipeline: true },
     });
 
-    if (!lead) {
+    if (!lead || lead.pipeline.workspaceId !== workspace.id) {
       return jsonError("Lead não encontrado", 404);
     }
 
-    const finalPipelineId = pipelineId ?? lead.pipelineId;
+    let finalPipelineId = lead.pipelineId;
+
+    if (pipelineId) {
+      const pipeline = await prisma.pipeline.findFirst({
+        where: { id: pipelineId, workspaceId: workspace.id },
+      });
+      if (!pipeline) {
+        return jsonError("Pipeline inválido", 404);
+      }
+      finalPipelineId = pipeline.id;
+    }
 
     let finalStageId = stageId ?? lead.stageId;
 

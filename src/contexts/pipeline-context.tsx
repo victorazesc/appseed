@@ -10,9 +10,11 @@ import {
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import { apiFetch } from "@/lib/api-client";
 import type { Pipeline } from "@/types";
+import { useWorkspace } from "@/contexts/workspace-context";
 
 const PIPELINE_STORAGE_KEY = "appseed:pipeline";
 
@@ -28,55 +30,101 @@ interface PipelineContextValue {
 
 const PipelineContext = createContext<PipelineContextValue | undefined>(undefined);
 
-async function fetchPipelines() {
-  const response = await apiFetch<{ pipelines: Pipeline[] }>("/api/pipelines");
+async function fetchPipelines(workspaceSlug: string) {
+  const response = await apiFetch<{ pipelines: Pipeline[] }>(
+    `/api/pipelines?workspaceSlug=${encodeURIComponent(workspaceSlug)}`,
+  );
   return response.pipelines;
 }
 
-export function PipelineProvider({ children }: { children: React.ReactNode }) {
+type PipelineProviderProps = {
+  children: React.ReactNode;
+  initialPipelines?: Pipeline[];
+  initialPipelineId?: string | null;
+};
+
+export function PipelineProvider({ children, initialPipelines, initialPipelineId }: PipelineProviderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
-  const [activePipelineId, setActivePipelineIdState] = useState<string | null>(null);
+  const [activePipelineId, setActivePipelineIdState] = useState<string | null>(() => initialPipelineId ?? null);
+  const { workspace } = useWorkspace();
+  const workspaceSlug = workspace?.slug;
+  const storageKey = workspaceSlug ? `${PIPELINE_STORAGE_KEY}:${workspaceSlug}` : PIPELINE_STORAGE_KEY;
 
   const { data: pipelines = [], isLoading, isFetching, refetch } = useQuery({
-    queryKey: ["pipelines"],
-    queryFn: fetchPipelines,
+    queryKey: ["pipelines", workspaceSlug],
+    queryFn: () => fetchPipelines(workspaceSlug!),
+    enabled: Boolean(workspaceSlug),
+    initialData: initialPipelines,
+    initialDataUpdatedAt: initialPipelines ? Date.now() : undefined,
+    onError: (error: Error) => {
+      toast.error(error.message);
+      setActivePipelineIdState(null);
+      if (typeof window !== "undefined" && workspaceSlug) {
+        window.localStorage.removeItem(storageKey);
+      }
+    },
   });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const urlPipelineId = searchParams?.get("pipelineId");
-    if (urlPipelineId) {
-      setActivePipelineIdState(urlPipelineId);
-      window.localStorage.setItem(PIPELINE_STORAGE_KEY, urlPipelineId);
+    if (!workspaceSlug) {
+      setActivePipelineIdState(null);
       return;
     }
 
-    const stored = window.localStorage.getItem(PIPELINE_STORAGE_KEY);
+    const urlPipelineId = searchParams?.get("pipelineId");
+    if (urlPipelineId) {
+      setActivePipelineIdState(urlPipelineId);
+      window.localStorage.setItem(storageKey, urlPipelineId);
+      return;
+    }
+
+    const stored = window.localStorage.getItem(storageKey);
     if (stored) {
       setActivePipelineIdState(stored);
     }
-  }, [searchParams]);
+  }, [searchParams, storageKey, workspaceSlug]);
 
   useEffect(() => {
+    if (!workspaceSlug) {
+      setActivePipelineIdState(null);
+      return;
+    }
+
     if (!isLoading && pipelines.length > 0 && !activePipelineId) {
       setActivePipelineIdState(pipelines[0].id);
     }
-  }, [isLoading, pipelines, activePipelineId]);
+  }, [isLoading, pipelines, activePipelineId, workspaceSlug]);
 
   useEffect(() => {
-    if (!pipelines.length) return;
+    if (!workspaceSlug) {
+      return;
+    }
+
+    if (!activePipelineId && initialPipelineId) {
+      setActivePipelineIdState(initialPipelineId);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(storageKey, initialPipelineId);
+      }
+    }
+  }, [workspaceSlug, initialPipelineId, activePipelineId, storageKey]);
+
+  useEffect(() => {
+    if (!pipelines.length) {
+      return;
+    }
     if (activePipelineId && pipelines.some((pipeline) => pipeline.id === activePipelineId)) {
       return;
     }
     setActivePipelineIdState(pipelines[0].id);
     if (typeof window !== "undefined") {
-      window.localStorage.setItem(PIPELINE_STORAGE_KEY, pipelines[0].id);
+      window.localStorage.setItem(storageKey, pipelines[0].id);
     }
-  }, [pipelines, activePipelineId]);
+  }, [pipelines, activePipelineId, storageKey]);
 
   const activePipeline = useMemo(
     () => pipelines.find((pipeline) => pipeline.id === activePipelineId) ?? null,
@@ -86,8 +134,8 @@ export function PipelineProvider({ children }: { children: React.ReactNode }) {
   const setActivePipelineId = useCallback(
     (pipelineId: string) => {
       setActivePipelineIdState(pipelineId);
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(PIPELINE_STORAGE_KEY, pipelineId);
+      if (typeof window !== "undefined" && storageKey) {
+        window.localStorage.setItem(storageKey, pipelineId);
       }
 
       if (searchParams && router) {
@@ -96,11 +144,11 @@ export function PipelineProvider({ children }: { children: React.ReactNode }) {
         router.replace(`${pathname}?${params.toString()}`);
       }
 
-      queryClient.invalidateQueries({ queryKey: ["leads"] });
-      queryClient.invalidateQueries({ queryKey: ["stages"] });
-      queryClient.invalidateQueries({ queryKey: ["metrics"] });
+      queryClient.invalidateQueries({ queryKey: ["leads", workspaceSlug] });
+      queryClient.invalidateQueries({ queryKey: ["stages", workspaceSlug] });
+      queryClient.invalidateQueries({ queryKey: ["metrics", workspaceSlug] });
     },
-    [pathname, router, searchParams, queryClient],
+    [pathname, router, searchParams, queryClient, workspaceSlug, storageKey],
   );
 
   const value = useMemo<PipelineContextValue>(

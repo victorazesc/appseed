@@ -90,7 +90,7 @@ export function NavUser({ user }: NavUserProps) {
               <DropdownMenuItem
                 onSelect={(event) => {
                   event.preventDefault();
-                  void signOut({ callbackUrl: "/signin" });
+                  void signOut({ callbackUrl: "/auth/sign-in" });
                 }}
               >
                 <LogOut className="mr-2 h-4 w-4" />

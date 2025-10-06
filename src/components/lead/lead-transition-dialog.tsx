@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { usePipelines } from "@/contexts/pipeline-context";
 import { useTranslation } from "@/contexts/i18n-context";
+import { useWorkspace } from "@/contexts/workspace-context";
 import type { LeadSummary } from "@/types";
 import { leadTransitionSchema } from "@/lib/validators";
 import { z } from "zod";
@@ -45,6 +46,13 @@ export function LeadTransitionDialog({ lead, open, onOpenChange, initialRule }: 
   const { pipelines } = usePipelines();
   const { messages } = useTranslation();
   const modalCopy = messages.crm.leadTransition;
+  const { workspace } = useWorkspace();
+  const workspaceSlug = workspace?.slug;
+  const appendWorkspace = (url: string) => {
+    if (!workspaceSlug) return url;
+    const separator = url.includes("?") ? "&" : "?";
+    return `${url}${separator}workspaceSlug=${encodeURIComponent(workspaceSlug)}`;
+  };
 
   const form = useForm<FormValues>({
     resolver: zodResolver(leadTransitionSchema),
@@ -131,7 +139,12 @@ export function LeadTransitionDialog({ lead, open, onOpenChange, initialRule }: 
         sourceStageId: values.sourceStageId ?? lead.stageId ?? lead.stage?.id,
       };
 
-      const response = await fetch(`/api/leads/${lead.id}/transition`, {
+      if (!workspaceSlug) {
+        toast.error("Workspace não selecionado");
+        return;
+      }
+
+      const response = await fetch(appendWorkspace(`/api/leads/${lead.id}/transition`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -149,7 +162,11 @@ export function LeadTransitionDialog({ lead, open, onOpenChange, initialRule }: 
 
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["leads"] }),
+        queryClient.invalidateQueries({ queryKey: ["leads", workspaceSlug ?? "unknown"] }),
         queryClient.invalidateQueries({ queryKey: ["pipelines"] }),
+        queryClient.invalidateQueries({ queryKey: ["pipelines", workspaceSlug ?? "unknown"] }),
+        queryClient.invalidateQueries({ queryKey: ["metrics"] }),
+        queryClient.invalidateQueries({ queryKey: ["metrics", workspaceSlug ?? "unknown"] }),
       ]);
 
       toast.success(modalCopy.success.replace("{{pipeline}}", body.targetPipelineName), {
@@ -158,7 +175,9 @@ export function LeadTransitionDialog({ lead, open, onOpenChange, initialRule }: 
           onClick: () => {
             const params = new URLSearchParams(window.location.search);
             params.set("pipelineId", body.targetPipelineId);
-            router.push(`/dashboard?${params.toString()}#lead-${body.newLeadId}`);
+            if (workspaceSlug) {
+              router.push(`/${workspaceSlug}/dashboard?${params.toString()}#lead-${body.newLeadId}`);
+            }
           },
         },
       });

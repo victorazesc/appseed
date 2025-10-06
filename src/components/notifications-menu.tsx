@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { LeadSummary } from "@/types";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useWorkspace } from "@/contexts/workspace-context";
 
 type NotificationsMenuProps = {
   leads?: LeadSummary[];
@@ -41,6 +42,8 @@ export function NotificationsMenu({ leads }: NotificationsMenuProps) {
     if (typeof window === "undefined") return new Date(0).toISOString();
     return localStorage.getItem(STORAGE_KEY) ?? new Date(0).toISOString();
   });
+  const { workspace } = useWorkspace();
+  const workspaceSlug = workspace?.slug;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -61,6 +64,7 @@ export function NotificationsMenu({ leads }: NotificationsMenuProps) {
       const dueSoon = Boolean(
         !hasOverdue && nextDueAt && nextDueAt > now && nextDueAt - now <= 60 * 60 * 1000,
       );
+      const leadHref = workspaceSlug ? `/${workspaceSlug}/leads/${lead.id}` : `/leads/${lead.id}`;
 
       if (createdAt && createdAt > lastSeenDate) {
         items.push({
@@ -68,7 +72,7 @@ export function NotificationsMenu({ leads }: NotificationsMenuProps) {
           leadId: lead.id,
           title: lead.name,
           description: "Novo lead cadastrado",
-          href: `/leads/${lead.id}`,
+          href: leadHref,
           createdAt: lead.createdAt ?? new Date().toISOString(),
           type: "new_lead",
           icon: "bell",
@@ -82,7 +86,7 @@ export function NotificationsMenu({ leads }: NotificationsMenuProps) {
           leadId: lead.id,
           title: lead.name,
           description: `${lead.overdueTasksCount ?? 0} tarefa(s) atrasada(s)`,
-          href: `/leads/${lead.id}`,
+          href: leadHref,
           createdAt: lead.createdAt ?? new Date().toISOString(),
           type: "task_overdue",
           icon: "alert",
@@ -96,7 +100,7 @@ export function NotificationsMenu({ leads }: NotificationsMenuProps) {
           leadId: lead.id,
           title: lead.name,
           description: `Tarefa vence em ${formatDate(new Date(nextDueAt))}`,
-          href: `/leads/${lead.id}`,
+          href: leadHref,
           createdAt: new Date(nextDueAt).toISOString(),
           type: "task_due_soon",
           icon: "clock",
@@ -106,7 +110,7 @@ export function NotificationsMenu({ leads }: NotificationsMenuProps) {
 
       return items;
     });
-  }, [leads, lastSeen]);
+  }, [leads, lastSeen, workspaceSlug]);
 
   const unreadCount = notifications.filter((notification) => notification.highlight).length;
   const hasAttention = notifications.some(

@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import type { Pipeline } from "@/types";
 import { NewPipelineDialog } from "./new-pipeline-dialog";
 import { format as formatDate } from "date-fns";
+import { useWorkspace } from "@/contexts/workspace-context";
 
 function formatPipelineDate(date?: string) {
   if (!date) return "—";
@@ -42,6 +43,13 @@ export function SettingsPipelinesList() {
   const settingsCopy = crm.settings.pipelines;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPipeline, setEditingPipeline] = useState<Pipeline | undefined>(undefined);
+  const { workspace } = useWorkspace();
+  const workspaceSlug = workspace?.slug;
+  const appendWorkspace = (url: string) => {
+    if (!workspaceSlug) return url;
+    const separator = url.includes("?") ? "&" : "?";
+    return `${url}${separator}workspaceSlug=${encodeURIComponent(workspaceSlug)}`;
+  };
 
   const handleEdit = (pipeline: Pipeline) => {
     setEditingPipeline(pipeline);
@@ -55,7 +63,11 @@ export function SettingsPipelinesList() {
 
   const handleDuplicate = async (pipeline: Pipeline) => {
     try {
-      const response = await apiFetch<{ pipeline: Pipeline }>(`/api/pipelines/${pipeline.id}/duplicate`, {
+      if (!workspaceSlug) {
+        toast.error("Workspace não selecionado");
+        return;
+      }
+      const response = await apiFetch<{ pipeline: Pipeline }>(appendWorkspace(`/api/pipelines/${pipeline.id}/duplicate`), {
         method: "POST",
       });
       await refetch();
@@ -74,7 +86,11 @@ export function SettingsPipelinesList() {
     if (!confirmation) return;
 
     try {
-      await apiFetch(`/api/pipelines/${pipeline.id}`, {
+      if (!workspaceSlug) {
+        toast.error("Workspace não selecionado");
+        return;
+      }
+      await apiFetch(appendWorkspace(`/api/pipelines/${pipeline.id}`), {
         method: "DELETE",
       });
       await refetch();

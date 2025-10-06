@@ -34,6 +34,7 @@ import type { Activity, LeadDetail, Stage } from "@/types";
 import { LeadTransitionDialog } from "@/components/lead/lead-transition-dialog";
 import { useTranslation } from "@/contexts/i18n-context";
 import { usePipelines } from "@/contexts/pipeline-context";
+import { useWorkspace } from "@/contexts/workspace-context";
 
 const leadFormSchema = z.object({
   name: z.string().min(1, "Informe o nome"),
@@ -81,12 +82,22 @@ export function LeadDetailClient({ leadId }: Props) {
   const activityCopy = crm.dialogs.activity;
 
   const { pipelines } = usePipelines();
+  const { workspace, isLoading: isWorkspaceLoading } = useWorkspace();
+  const workspaceSlug = workspace?.slug;
+  const appendWorkspace = (url: string) => {
+    if (!workspaceSlug) return url;
+    const separator = url.includes("?") ? "&" : "?";
+    return `${url}${separator}workspaceSlug=${encodeURIComponent(workspaceSlug)}`;
+  };
   const leadQuery = useQuery({
-    queryKey: ["lead", leadId],
+    queryKey: ["lead", workspaceSlug ?? "unknown", leadId],
     queryFn: async () => {
-      const data = await apiFetch<{ lead: LeadDetail }>(`/api/leads/${leadId}`);
+      if (!workspaceSlug) throw new Error("Workspace não selecionado");
+      const data = await apiFetch<{ lead: LeadDetail }>(appendWorkspace(`/api/leads/${leadId}`));
       return data.lead;
     },
+    enabled: Boolean(workspaceSlug),
+    onError: (error: Error) => toast.error(error.message),
   });
   const lead = leadQuery.data;
   const hasAlternativePipelines = useMemo(
@@ -95,54 +106,74 @@ export function LeadDetailClient({ leadId }: Props) {
   );
 
   const stagesQuery = useQuery({
-    queryKey: ["stages", leadQuery.data?.pipeline?.id ?? "unknown"],
+    queryKey: ["stages", workspaceSlug ?? "unknown", leadQuery.data?.pipeline?.id ?? "unknown"],
     queryFn: async () => {
-      if (!leadQuery.data?.pipeline?.id) return [] as Stage[];
+      const pipelineId = leadQuery.data?.pipeline?.id;
+      if (!pipelineId || !workspaceSlug) return [] as Stage[];
       const data = await apiFetch<{ stages: Stage[] }>(
-        `/api/stages?pipelineId=${leadQuery.data.pipeline.id}`,
+        appendWorkspace(`/api/stages?pipelineId=${pipelineId}`),
       );
       return data.stages.sort((a, b) => a.position - b.position);
     },
-    enabled: Boolean(leadQuery.data?.pipeline?.id),
+    enabled: Boolean(leadQuery.data?.pipeline?.id && workspaceSlug),
+    onError: (error: Error) => toast.error(error.message),
   });
 
   const updateLeadMutation = useMutation({
-    mutationFn: (payload: LeadUpdatePayload) =>
-      apiFetch<{ lead: LeadDetail }>(`/api/leads/${leadId}`, {
+    mutationFn: (payload: LeadUpdatePayload) => {
+      if (!workspaceSlug) {
+        throw new Error("Workspace não selecionado");
+      }
+      return apiFetch<{ lead: LeadDetail }>(appendWorkspace(`/api/leads/${leadId}`), {
         method: "PATCH",
         body: JSON.stringify(payload),
-      }),
+      });
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["lead", leadId] });
+      queryClient.invalidateQueries({ queryKey: ["lead", workspaceSlug ?? "unknown", leadId] });
+      queryClient.invalidateQueries({ queryKey: ["lead"] });
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["leads", workspaceSlug ?? "unknown"] });
       toast.success(crm.toasts.leadUpdated);
     },
     onError: (error: Error) => toast.error(error.message),
   });
 
   const addActivityMutation = useMutation({
-    mutationFn: (payload: { type: Activity["type"]; content: string; dueAt?: string }) =>
-      apiFetch<{ activity: Activity }>(`/api/leads/${leadId}/activities`, {
+    mutationFn: (payload: { type: Activity["type"]; content: string; dueAt?: string }) => {
+      if (!workspaceSlug) {
+        throw new Error("Workspace não selecionado");
+      }
+      return apiFetch<{ activity: Activity }>(appendWorkspace(`/api/leads/${leadId}/activities`), {
         method: "POST",
         body: JSON.stringify(payload),
-      }),
+      });
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["lead", leadId] });
+      queryClient.invalidateQueries({ queryKey: ["lead", workspaceSlug ?? "unknown", leadId] });
+      queryClient.invalidateQueries({ queryKey: ["lead"] });
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["leads", workspaceSlug ?? "unknown"] });
       toast.success(crm.toasts.activityLogged);
     },
     onError: (error: Error) => toast.error(error.message),
   });
 
   const completeTaskMutation = useMutation({
-    mutationFn: (activityId: string) =>
-      apiFetch<{ activity: Activity }>(`/api/activities/${activityId}`, {
+    mutationFn: (activityId: string) => {
+      if (!workspaceSlug) {
+        throw new Error("Workspace não selecionado");
+      }
+      return apiFetch<{ activity: Activity }>(appendWorkspace(`/api/activities/${activityId}`), {
         method: "PATCH",
         body: JSON.stringify({ action: "complete" }),
-      }),
+      });
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["lead", leadId] });
+      queryClient.invalidateQueries({ queryKey: ["lead", workspaceSlug ?? "unknown", leadId] });
+      queryClient.invalidateQueries({ queryKey: ["lead"] });
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["leads", workspaceSlug ?? "unknown"] });
       toast.success(crm.toasts.taskCompleted);
     },
     onError: (error: Error) => toast.error(error.message),
@@ -238,6 +269,24 @@ export function LeadDetailClient({ leadId }: Props) {
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
   }, [lead?.activities]);
+
+  if (!workspaceSlug) {
+    if (isWorkspaceLoading) {
+      return (
+        <div className="space-y-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Skeleton key={index} className="h-16 w-full" />
+          ))}
+        </div>
+      );
+    }
+
+    return (
+      <div className="rounded-lg border border-dashed border-border bg-muted/20 p-10 text-center text-sm text-muted-foreground">
+        Não foi possível identificar o workspace ativo. Retorne à lista de funis e selecione um workspace válido.
+      </div>
+    );
+  }
 
   const handleTaskDone = async (activity: Activity) => {
     await completeTaskMutation.mutateAsync(activity.id);
