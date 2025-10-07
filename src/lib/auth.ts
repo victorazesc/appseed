@@ -199,11 +199,11 @@ export async function getSessionUser(_request?: Request) {
   if (!session?.user?.id) {
     return null;
   }
-
   return {
     id: session.user.id,
     email: session.user.email,
     name: session.user.name,
+    image: session.user.image,
     globalRole: session.user.globalRole,
     isAdminGlobal: session.user.isAdminGlobal,
     impersonatedWorkspaceId: session.user.impersonatedWorkspaceId ?? null,

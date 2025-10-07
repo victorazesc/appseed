@@ -13,12 +13,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useWorkspace } from "@/contexts/workspace-context";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 type SidebarUserMenuProps = {
   user?: {
     name?: string | null;
     email?: string | null;
-    avatarUrl?: string | null;
+    image?: string | null;
   } | null;
 };
 
@@ -37,9 +38,10 @@ export function SidebarUserMenu({ user }: SidebarUserMenuProps) {
     <DropdownMenu>
       <DropdownMenuTrigger className="group flex w-full items-center justify-between rounded-xl border border-border bg-background px-4 py-3 text-left transition hover:border-primary/50 focus:outline-none overflow-hidden">
         <div className="flex items-center gap-3 w-full overflow-hidden">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">
-            {initials}
-          </span>
+          <Avatar className="h-8 w-8 rounded-lg">
+            <AvatarImage src={user.image ?? undefined} alt={user.name ?? "Usuário"} />
+            <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
+          </Avatar>
           <span className="flex flex-col overflow-hidden">
             <span className="text-sm font-semibold text-foreground">{user.name ?? "Usuário"}</span>
             <span className="text-xs text-muted-foreground truncate overflow-hidden">{user.email ?? "sem email"}</span>

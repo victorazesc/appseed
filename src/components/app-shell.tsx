@@ -36,6 +36,7 @@ type AppShellProps = {
     id: string;
     name?: string | null;
     email?: string | null;
+    image?: string | null;
     globalRole?: GlobalRole;
     isAdminGlobal?: boolean;
     impersonatedWorkspaceId?: string | null;
@@ -112,7 +113,7 @@ export function AppShell({ children, user }: AppShellProps) {
       <div className="flex min-h-screen w-full bg-muted/20">
         <AppSidebar
           navItems={navItems}
-          user={user ? { name: user.name, email: user.email, avatarUrl: undefined } : null}
+          user={user ? { name: user.name, email: user.email, image: user.image } : null}
           onCreatePipeline={handleCreatePipeline}
           onEditPipeline={handleEditPipeline}
         />

@@ -44,7 +44,7 @@ type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
   user?: {
     name?: string | null;
     email?: string | null;
-    avatarUrl?: string | null;
+    image?: string | null;
   } | null;
   onCreatePipeline?: () => void;
   onEditPipeline?: () => void;

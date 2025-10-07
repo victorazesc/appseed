@@ -12,11 +12,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 type UserMenuProps = {
   user?: {
     name?: string | null;
     email?: string | null;
+    image?: string | null;
   } | null;
 };
 
@@ -30,9 +32,10 @@ export function UserMenu({ user }: UserMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="group inline-flex items-center gap-2 rounded-full border border-input bg-background px-3 py-1.5 text-sm font-medium text-foreground shadow-sm transition hover:border-primary/40 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-          {initials.toUpperCase()}
-        </span>
+        <Avatar className="h-8 w-8 rounded-lg">
+          <AvatarImage src={user.image ?? undefined} alt={user.name ?? "Usuário"} />
+          <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
+        </Avatar>
         <span className="hidden flex-col text-left leading-tight sm:flex">
           <span className="text-sm font-semibold text-foreground">{user.name ?? "Usuário"}</span>
           <span className="text-xs text-muted-foreground">{user.email ?? "Sem email"}</span>
@@ -40,9 +43,10 @@ export function UserMenu({ user }: UserMenuProps) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56 bg-white dark:bg-gray-800" forceMount>
         <DropdownMenuLabel className="flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-            {initials.toUpperCase()}
-          </span>
+          <Avatar className="h-8 w-8 rounded-lg">
+            <AvatarImage src={user.image ?? undefined} alt={user.name ?? "Usuário"} />
+            <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
+          </Avatar>
           <span>
             <span className="block text-sm font-semibold text-foreground">{user.name ?? "Usuário"}</span>
             <span className="block text-xs text-muted-foreground">{user.email ?? "Sem email"}</span>
