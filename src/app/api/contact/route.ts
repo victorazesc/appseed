@@ -9,6 +9,7 @@ const DEFAULT_FROM_EMAIL = process.env.SMTP_EMAIL ?? "";
 const DEFAULT_FROM_NAME = process.env.SMTP_FROM_NAME ?? "AppSeed";
 const INBOX_EMAIL = process.env.CONTACT_INBOX_EMAIL ?? DEFAULT_FROM_EMAIL;
 const CONFIRMATION_ENABLED = process.env.SEND_CONTACT_CONFIRMATION !== "false";
+const CONTACT_PIPELINE_WEBHOOK_URL = process.env.CONTACT_PIPELINE_WEBHOOK_URL;
 
 interface ContactPayload {
   name?: string;
@@ -44,6 +45,7 @@ export async function POST(request: Request) {
     }
 
     await createOrUpdateLead(sanitized);
+    await dispatchPipelineWebhook(sanitized);
 
     const fromEmail = DEFAULT_FROM_EMAIL || INBOX_EMAIL;
     const from = DEFAULT_FROM_NAME ? `${DEFAULT_FROM_NAME} <${fromEmail}>` : fromEmail;
@@ -179,6 +181,43 @@ async function createOrUpdateLead(data: SanitizedPayload) {
       },
     },
   });
+}
+
+async function dispatchPipelineWebhook(data: SanitizedPayload) {
+  if (!CONTACT_PIPELINE_WEBHOOK_URL) return;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const payload = {
+      name: data.name,
+      email: data.email,
+      phone: data.phone ?? null,
+      company: data.company ?? null,
+      origin: "contact_form",
+      stage: "Lead Novo",
+      metadata: {
+        projectType: data.projectType ?? null,
+        budget: data.budget ?? null,
+        timeline: data.timeline ?? null,
+        message: data.message ?? null,
+      },
+    };
+
+    const response = await fetch(CONTACT_PIPELINE_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      console.error("contact webhook failed", await response.text());
+    }
+  } catch (error) {
+    console.error("contact webhook error", error);
+  }
 }
 
 function buildActivityContent(data: SanitizedPayload) {
