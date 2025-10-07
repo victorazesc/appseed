@@ -34,8 +34,8 @@ export function SidebarUserMenu({ user }: SidebarUserMenuProps) {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="group flex w-full items-center justify-between rounded-xl border border-border bg-background px-4 py-3 text-left transition hover:border-primary/50 focus:outline-none">
-        <div className="flex items-center gap-3">
+      <DropdownMenuTrigger className="group flex w-full items-center justify-between rounded-xl border border-border bg-background px-4 py-3 text-left transition hover:border-primary/50 focus:outline-none overflow-hidden">
+        <div className="flex items-center gap-3 w-full overflow-hidden">
           <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">
             {initials}
           </span>
