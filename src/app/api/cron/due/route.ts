@@ -16,6 +16,7 @@ export async function POST() {
     const tasks = await prisma.activity.findMany({
       where: {
         type: "task",
+        status: "OPEN",
         dueAt: { lte: now },
       },
       select: {

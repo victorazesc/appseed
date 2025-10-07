@@ -1,6 +1,14 @@
 import { addHours, addDays } from "date-fns";
 import { randomBytes } from "crypto";
-import { ActivityType, GlobalRole, Prisma, PrismaClient, WorkspaceRole } from "@prisma/client";
+import {
+  ActivityPriority,
+  ActivityStatus,
+  ActivityType,
+  GlobalRole,
+  Prisma,
+  PrismaClient,
+  WorkspaceRole,
+} from "@prisma/client";
 
 import { hashPassword } from "../src/lib/password";
 
@@ -11,6 +19,9 @@ async function main() {
   await prisma.auditLog.deleteMany();
   await prisma.userToken.deleteMany();
   await prisma.invite.deleteMany();
+  await prisma.activityCommentMention.deleteMany();
+  await prisma.activityComment.deleteMany();
+  await prisma.activityFollower.deleteMany();
   await prisma.membership.deleteMany();
   await prisma.session.deleteMany();
   await prisma.account.deleteMany();
@@ -287,9 +298,15 @@ async function main() {
         activities: {
           create: lead.activities.map((activity) => ({
             type: activity.type,
+            title: activity.content.slice(0, 80),
             content: activity.content,
             dueAt: activity.dueAt,
-            createdBy: activity.createdBy,
+            status: activity.type === ActivityType.task ? ActivityStatus.OPEN : ActivityStatus.OPEN,
+            priority:
+              activity.type === ActivityType.task ? ActivityPriority.HIGH : ActivityPriority.MEDIUM,
+            workspaceId: workspace.id,
+            createdById: adminUser.id,
+            assigneeId: adminUser.id,
           })),
         },
       },

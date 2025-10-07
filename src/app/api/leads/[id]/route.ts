@@ -5,15 +5,26 @@ import { jsonError } from "@/lib/http";
 import { leadUpdateSchema } from "@/lib/validators";
 import { requireWorkspaceFromRequest } from "@/lib/guards";
 import { WorkspaceRole } from "@prisma/client";
+import { activityInclude, serializeActivity } from "@/lib/server/activity";
 
-function extractTaskMeta(activities: Array<{ type: string; dueAt: Date | null }>) {
+function extractTaskMeta(activities: Array<{ type: string; status: string; dueAt: Date | null }>) {
   const now = Date.now();
   const overdueTasks = activities.filter(
-    (activity) => activity.type === "task" && activity.dueAt && activity.dueAt.getTime() < now,
+    (activity) =>
+      activity.type === "task" &&
+      activity.status === "OPEN" &&
+      activity.dueAt &&
+      activity.dueAt.getTime() < now,
   );
 
   const upcomingTask = activities
-    .filter((activity) => activity.type === "task" && activity.dueAt && activity.dueAt.getTime() >= now)
+    .filter(
+      (activity) =>
+        activity.type === "task" &&
+        activity.status === "OPEN" &&
+        activity.dueAt &&
+        activity.dueAt.getTime() >= now,
+    )
     .sort((a, b) => (a.dueAt?.getTime() ?? 0) - (b.dueAt?.getTime() ?? 0))[0];
 
   return {
@@ -50,6 +61,7 @@ export async function GET(
         },
         activities: {
           orderBy: { createdAt: "desc" },
+          include: activityInclude,
         },
       },
     });
@@ -58,15 +70,42 @@ export async function GET(
       return jsonError("Lead não encontrado", 404);
     }
 
-    const meta = extractTaskMeta(lead.activities);
+    const meta = extractTaskMeta(
+      lead.activities.map((activity) => ({
+        type: activity.type,
+        status: activity.status,
+        dueAt: activity.dueAt,
+      })),
+    );
+    const serializedActivities = lead.activities.map((activity) => serializeActivity(activity));
+
     const sanitizedLead = {
-      ...lead,
+      id: lead.id,
+      name: lead.name,
+      email: lead.email,
+      phone: lead.phone,
+      company: lead.company,
+      valueCents: lead.valueCents,
+      ownerId: lead.ownerId,
+      pipelineId: lead.pipelineId,
+      stageId: lead.stageId,
+      archived: lead.archived,
+      createdAt: lead.createdAt.toISOString(),
+      updatedAt: lead.updatedAt.toISOString(),
+      stage: lead.stage
+        ? {
+            id: lead.stage.id,
+            name: lead.stage.name,
+            position: lead.stage.position,
+          }
+        : null,
       pipeline: lead.pipeline
         ? {
-          id: lead.pipeline.id,
-          name: lead.pipeline.name,
-        }
+            id: lead.pipeline.id,
+            name: lead.pipeline.name,
+          }
         : null,
+      activities: serializedActivities,
     };
 
     return NextResponse.json({
@@ -151,10 +190,11 @@ export async function PATCH(
           },
         },
         activities: {
-          where: { type: "task", dueAt: { not: null } },
+          where: { type: "task", status: "OPEN", dueAt: { not: null } },
           select: {
             id: true,
             dueAt: true,
+            status: true,
           },
         },
         _count: {
@@ -166,7 +206,11 @@ export async function PATCH(
     });
 
     const meta = extractTaskMeta(
-      updated.activities.map((activity) => ({ type: "task", dueAt: activity.dueAt })) ?? [],
+      updated.activities.map((activity) => ({
+        type: "task",
+        status: activity.status,
+        dueAt: activity.dueAt,
+      })) ?? [],
     );
 
     const leadResponse = {

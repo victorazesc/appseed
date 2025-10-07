@@ -117,9 +117,15 @@ export async function POST(
         await prisma.activity.createMany({
           data: recentActivities.map((activity) => ({
             type: activity.type,
+            title: activity.title && activity.title.length > 0 ? activity.title : activity.content.slice(0, 140),
             content: activity.content,
+            status: activity.status ?? "OPEN",
+            priority: activity.priority ?? "MEDIUM",
             dueAt: activity.dueAt,
-            createdBy: activity.createdBy,
+            completedAt: activity.completedAt,
+            assigneeId: activity.assigneeId,
+            createdById: activity.createdById,
+            workspaceId: targetPipeline.workspaceId,
             leadId: newLead.id,
           })),
         });

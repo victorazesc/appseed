@@ -10,19 +10,29 @@ export async function GET(request: NextRequest) {
 
     const memberships = await prisma.membership.findMany({
       where: { userId: user.id },
-      include: {
-        workspace: true,
+      select: {
+        role: true,
+        workspace: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            color: true,
+          },
+        },
       },
       orderBy: { createdAt: "asc" },
     });
 
-    const workspaces = memberships.map((membership) => ({
-      id: membership.workspace.id,
-      name: membership.workspace.name,
-      slug: membership.workspace.slug,
-      color: membership.workspace.color,
-      role: membership.role,
-    }));
+    const workspaces = memberships
+      .filter((membership) => membership.workspace)
+      .map((membership) => ({
+        id: membership.workspace.id,
+        name: membership.workspace.name,
+        slug: membership.workspace.slug,
+        color: membership.workspace.color,
+        role: membership.role,
+      }));
 
     return NextResponse.json({ workspaces });
   } catch (error) {

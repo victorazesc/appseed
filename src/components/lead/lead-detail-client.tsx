@@ -17,6 +17,7 @@ import {
   MessageCircle,
   AlertTriangle,
   Clock,
+  MessageCircleMore,
 } from "lucide-react";
 
 import { ActivityDialog } from "@/components/dialogs/activity-dialog";
@@ -27,14 +28,18 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { apiFetch } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatDate } from "@/lib/format";
-import type { Activity, LeadDetail, Stage } from "@/types";
+import type { Activity, ActivityComment, LeadDetail, Stage } from "@/types";
 import { LeadTransitionDialog } from "@/components/lead/lead-transition-dialog";
 import { useTranslation } from "@/contexts/i18n-context";
 import { usePipelines } from "@/contexts/pipeline-context";
 import { useWorkspace } from "@/contexts/workspace-context";
+import { useWorkspaceUsers } from "@/hooks/use-workspace-users";
+import { MentionTextarea } from "@/components/activity/mention-textarea";
 
 const leadFormSchema = z.object({
   name: z.string().min(1, "Informe o nome"),
@@ -62,6 +67,131 @@ type Props = {
   leadId: string;
 };
 
+type ActivityDialogInitialValues = {
+  type?: Activity["type"];
+  title?: string;
+  content?: string;
+  dueAt?: string;
+  status?: "OPEN" | "COMPLETED";
+  priority?: "LOW" | "MEDIUM" | "HIGH";
+  assigneeId?: string;
+  followers?: string[];
+};
+
+type MentionHighlightProps = {
+  label: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    image: string | null;
+  };
+};
+
+function getUserLabel(user: { name: string | null; email: string | null }) {
+  return user.name?.trim() || user.email || "Usuário";
+}
+
+function getUserInitials(name?: string | null, email?: string | null) {
+  const source = name?.trim() || email || "Usuário";
+  const parts = source.split(" ").filter(Boolean).slice(0, 2);
+  return parts.map((part) => part.charAt(0).toUpperCase()).join("") || "US";
+}
+
+function MentionHighlight({ label, user }: MentionHighlightProps) {
+  const initials = getUserInitials(user.name, user.email);
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary">
+          @{label}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent className="w-56">
+        <div className="flex items-center gap-3">
+          <Avatar className="h-9 w-9">
+            {user.image ? <AvatarImage src={user.image} alt={label} /> : null}
+            <AvatarFallback>{initials}</AvatarFallback>
+          </Avatar>
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-foreground">{user.name ?? label}</p>
+            <p className="text-xs text-muted-foreground">{user.email ?? "—"}</p>
+          </div>
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function renderCommentContent(comment: ActivityComment) {
+  const text = comment.content ?? "";
+  if (!comment.mentions?.length) {
+    return [text];
+  }
+
+  const entries = comment.mentions.map((mention) => {
+    const userLabel = getUserLabel({ name: mention.name ?? null, email: mention.email ?? null });
+    return {
+      key: `@${userLabel}`,
+      label: userLabel,
+      user: {
+        id: mention.id,
+        name: mention.name ?? null,
+        email: mention.email ?? null,
+        image: mention.image ?? null,
+      },
+    };
+  });
+
+  const nodes: React.ReactNode[] = [];
+  let index = 0;
+
+  while (index < text.length) {
+    let matchEntry: (typeof entries)[number] | null = null;
+    let matchIndex = -1;
+
+    for (const entry of entries) {
+      const pos = text.indexOf(entry.key, index);
+      if (pos !== -1 && (matchIndex === -1 || pos < matchIndex)) {
+        matchIndex = pos;
+        matchEntry = entry;
+      }
+    }
+
+    if (!matchEntry || matchIndex < index) {
+      nodes.push(text.slice(index));
+      break;
+    }
+
+    if (matchIndex > index) {
+      nodes.push(text.slice(index, matchIndex));
+    }
+
+    nodes.push(
+      <MentionHighlight
+        key={`${matchEntry.user.id}-${matchIndex}`}
+        label={matchEntry.label}
+        user={matchEntry.user}
+      />,
+    );
+
+    index = matchIndex + matchEntry.key.length;
+  }
+
+  return nodes;
+}
+
+type ActivityMutationInput = {
+  type: Activity["type"];
+  title?: string;
+  content: string;
+  dueAt?: string;
+  status?: "OPEN" | "COMPLETED";
+  priority?: "LOW" | "MEDIUM" | "HIGH";
+  assigneeId?: string | null;
+  followers?: string[];
+};
+
 const activityIcons: Record<Activity["type"], ReactNode> = {
   note: <StickyNote className="h-4 w-4 text-primary" />,
   call: <PhoneCall className="h-4 w-4 text-primary" />,
@@ -73,16 +203,25 @@ const activityIcons: Record<Activity["type"], ReactNode> = {
 export function LeadDetailClient({ leadId }: Props) {
   const queryClient = useQueryClient();
   const [activityDialogOpen, setActivityDialogOpen] = useState(false);
-  const [activityType, setActivityType] = useState<Activity["type"]>("note");
-  const [activityPrefill, setActivityPrefill] = useState<string>("");
+  const [activityInitialValues, setActivityInitialValues] = useState<ActivityDialogInitialValues>({
+    type: "note",
+    status: "OPEN",
+    priority: "MEDIUM",
+  });
+  const [activeCommentActivity, setActiveCommentActivity] = useState<string | null>(null);
+  const [commentDrafts, setCommentDrafts] = useState<Record<string, { content: string; mentions: string[] }>>({});
   const [transitionOpen, setTransitionOpen] = useState(false);
   const { messages, locale } = useTranslation();
   const { crm } = messages;
   const leadCopy = crm.leadDetail;
   const activityCopy = crm.dialogs.activity;
+  const timelineCopy = leadCopy.timeline;
+  const commentsCopy = leadCopy.comments;
 
   const { pipelines } = usePipelines();
   const { workspace, isLoading: isWorkspaceLoading } = useWorkspace();
+  const workspaceUsersQuery = useWorkspaceUsers();
+  const mentionUsers = workspaceUsersQuery.data ?? [];
   const workspaceSlug = workspace?.slug;
   const appendWorkspace = (url: string) => {
     if (!workspaceSlug) return url;
@@ -152,7 +291,7 @@ export function LeadDetailClient({ leadId }: Props) {
   });
 
   const addActivityMutation = useMutation({
-    mutationFn: (payload: { type: Activity["type"]; content: string; dueAt?: string }) => {
+    mutationFn: (payload: ActivityMutationInput) => {
       if (!workspaceSlug) {
         throw new Error("Workspace não selecionado");
       }
@@ -178,7 +317,7 @@ export function LeadDetailClient({ leadId }: Props) {
       }
       return apiFetch<{ activity: Activity }>(appendWorkspace(`/api/activities/${activityId}`), {
         method: "PATCH",
-        body: JSON.stringify({ action: "complete" }),
+        body: JSON.stringify({ status: "COMPLETED" }),
       });
     },
     onSuccess: () => {
@@ -187,6 +326,24 @@ export function LeadDetailClient({ leadId }: Props) {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
       queryClient.invalidateQueries({ queryKey: ["leads", workspaceSlug ?? "unknown"] });
       toast.success(crm.toasts.taskCompleted);
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const commentMutation = useMutation({
+    mutationFn: async ({ activityId, content, mentions }: { activityId: string; content: string; mentions: string[] }) => {
+      if (!workspaceSlug) {
+        throw new Error("Workspace não selecionado");
+      }
+      return apiFetch<{ comment: ActivityComment }>(appendWorkspace(`/api/activities/${activityId}/comments`), {
+        method: "POST",
+        body: JSON.stringify({ content, mentions }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lead", workspaceSlug ?? "unknown", leadId] });
+      queryClient.invalidateQueries({ queryKey: ["lead"] });
+      toast.success(leadCopy.comments.toastCreated);
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -304,6 +461,70 @@ export function LeadDetailClient({ leadId }: Props) {
     await completeTaskMutation.mutateAsync(activity.id);
   };
 
+  const ensureCommentDraft = (activityId: string) => {
+    setCommentDrafts((prev) => {
+      if (prev[activityId]) return prev;
+      return {
+        ...prev,
+        [activityId]: {
+          content: "",
+          mentions: [],
+        },
+      };
+    });
+  };
+
+  const handleToggleComments = (activityId: string) => {
+    setActiveCommentActivity((current) => {
+      const next = current === activityId ? null : activityId;
+      if (next) ensureCommentDraft(activityId);
+      return next;
+    });
+  };
+
+  const handleCommentChange = (activityId: string, content: string) => {
+    setCommentDrafts((prev) => ({
+      ...prev,
+      [activityId]: {
+        content,
+        mentions: prev[activityId]?.mentions ?? [],
+      },
+    }));
+  };
+
+  const handleMentionsChange = (activityId: string, mentionIds: string[]) => {
+    setCommentDrafts((prev) => ({
+      ...prev,
+      [activityId]: {
+        content: prev[activityId]?.content ?? "",
+        mentions: mentionIds,
+      },
+    }));
+  };
+
+  const handleCommentSubmit = async (activityId: string) => {
+    const draft = commentDrafts[activityId];
+    if (!draft || !draft.content.trim()) {
+      toast.error(commentsCopy.validationRequired);
+      return;
+    }
+
+    await commentMutation.mutateAsync({
+      activityId,
+      content: draft.content.trim(),
+      mentions: draft.mentions,
+    });
+
+    setCommentDrafts((prev) => ({
+      ...prev,
+      [activityId]: {
+        content: "",
+        mentions: [],
+      },
+    }));
+    setActiveCommentActivity(null);
+  };
+
   if (leadQuery.isLoading || !lead) {
     return (
       <div className="grid gap-6 md:grid-cols-[2fr,1fr]">
@@ -337,7 +558,8 @@ export function LeadDetailClient({ leadId }: Props) {
   const dueSoonLabel = leadCopy.badges.dueSoon;
 
   return (
-    <div className="grid gap-6 md:grid-cols-[2fr,1fr]">
+    <TooltipProvider>
+      <div className="grid gap-6 md:grid-cols-[2fr,1fr]">
       <div className="space-y-6">
         <Card>
           <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -447,14 +669,18 @@ export function LeadDetailClient({ leadId }: Props) {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>{leadCopy.timeline.title}</CardTitle>
+            <CardTitle>{timelineCopy.title}</CardTitle>
             <div className="flex items-center gap-2">
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => {
-                  setActivityType("email");
-                  setActivityPrefill("");
+                  setActivityInitialValues({
+                    type: "email",
+                    content: "",
+                    status: "OPEN",
+                    priority: "MEDIUM",
+                  });
                   setActivityDialogOpen(true);
                 }}
                 disabled={!lead.email}
@@ -464,8 +690,12 @@ export function LeadDetailClient({ leadId }: Props) {
               <Button
                 size="sm"
                 onClick={() => {
-                  setActivityType("note");
-                  setActivityPrefill("");
+                  setActivityInitialValues({
+                    type: "note",
+                    content: "",
+                    status: "OPEN",
+                    priority: "MEDIUM",
+                  });
                   setActivityDialogOpen(true);
                 }}
               >
@@ -475,15 +705,19 @@ export function LeadDetailClient({ leadId }: Props) {
           </CardHeader>
           <CardContent className="space-y-4">
             {sortedActivities.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{leadCopy.timeline.empty}</p>
+              <p className="text-sm text-muted-foreground">{timelineCopy.empty}</p>
             ) : (
               <ul className="space-y-4">
                 {sortedActivities.map((activity) => {
                   const isTask = activity.type === "task";
+                  const isCompleted = isTask && activity.status === "COMPLETED";
                   const dueAt = activity.dueAt ? new Date(activity.dueAt) : null;
-                  const isOverdue = Boolean(isTask && dueAt && dueAt.getTime() < now);
+                  const isOverdue = Boolean(
+                    isTask && !isCompleted && dueAt && dueAt.getTime() < now,
+                  );
                   const isDueSoon = Boolean(
                     isTask &&
+                      !isCompleted &&
                       !isOverdue &&
                       dueAt &&
                       dueAt.getTime() > now &&
@@ -493,6 +727,27 @@ export function LeadDetailClient({ leadId }: Props) {
                   const formattedDueAt = activity.dueAt
                     ? formatDate(activity.dueAt, { locale })
                     : null;
+                  const typeLabel = activityCopy.types[activity.type];
+                  const titleText = activity.title?.trim() ? activity.title : typeLabel;
+                  const priorityValue = (activity.priority ?? "MEDIUM") as "LOW" | "MEDIUM" | "HIGH";
+                  const priorityKey = priorityValue.toLowerCase() as "low" | "medium" | "high";
+                  const priorityLabel = activityCopy.priorities[priorityKey];
+                  const statusValue = (activity.status ?? "OPEN") as "OPEN" | "COMPLETED";
+                  const statusLabel =
+                    activityCopy.statuses[statusValue === "OPEN" ? "open" : "completed"];
+                  const assigneeLabel = activity.assignee
+                    ? activity.assignee.name?.trim() ||
+                      activity.assignee.email ||
+                      crm.statuses.none
+                    : crm.statuses.none;
+                  const followerNames =
+                    activity.followers?.map(
+                      (user) => user.name?.trim() || user.email || crm.statuses.none,
+                    ) ?? [];
+                  const showFollowers = followerNames.length > 0;
+                  const priorityBadgeVariant =
+                    priorityValue === "HIGH" ? "destructive" : priorityValue === "LOW" ? "outline" : "secondary";
+
                   const dueBadgeText = formattedDueAt
                     ? isOverdue
                       ? `${crm.statuses.overdue} ${formattedDueAt}`
@@ -511,37 +766,159 @@ export function LeadDetailClient({ leadId }: Props) {
                       )}
                     >
                       <div className="mt-1">{activityIcons[activity.type]}</div>
-                    <div className="flex w-full flex-col gap-2">
-                      <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
-                        <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                          <span>{activityCopy.types[activity.type]}</span>
-                          <span className="text-xs text-muted-foreground">{formattedCreatedAt}</span>
+                      <div className="flex w-full flex-col gap-2">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                              <span>{titleText}</span>
+                              <Badge variant="outline">{typeLabel}</Badge>
+                            </div>
+                            <span className="text-xs text-muted-foreground">{formattedCreatedAt}</span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                            <Badge variant={priorityBadgeVariant} className="font-medium">
+                              {priorityLabel}
+                            </Badge>
+                            <span>
+                              {activityCopy.labels.assignee}: {assigneeLabel}
+                            </span>
+                            <Badge variant={statusValue === "COMPLETED" ? "secondary" : "outline"}>
+                              {statusLabel}
+                            </Badge>
+                          </div>
                         </div>
                         {isTask && activity.dueAt ? (
-                          <div className="flex items-center gap-2">
-                            <Badge variant={isOverdue ? "destructive" : isDueSoon ? "warning" : "secondary"}>
-                              {dueBadgeText}
-                            </Badge>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleTaskDone(activity)}
-                              disabled={completeTaskMutation.isPending}
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge
+                              variant={
+                                isCompleted
+                                  ? "secondary"
+                                  : isOverdue
+                                    ? "destructive"
+                                    : isDueSoon
+                                      ? "warning"
+                                      : "secondary"
+                              }
                             >
-                              <CheckCircle2 className="mr-1 h-4 w-4" /> {crm.buttons.markDone}
-                            </Button>
+                              {isCompleted ? statusLabel : dueBadgeText}
+                            </Badge>
+                            {!isCompleted ? (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleTaskDone(activity)}
+                                disabled={completeTaskMutation.isPending}
+                              >
+                                <CheckCircle2 className="mr-1 h-4 w-4" /> {crm.buttons.markDone}
+                              </Button>
+                            ) : null}
                           </div>
                         ) : null}
+                        <p
+                          className={cn(
+                            "text-sm whitespace-pre-line",
+                            isOverdue
+                              ? "text-destructive"
+                              : isCompleted
+                                ? "text-muted-foreground line-through"
+                                : "text-muted-foreground",
+                          )}
+                        >
+                          {activity.content}
+                        </p>
+                        {showFollowers ? (
+                          <p className="text-xs text-muted-foreground">
+                            {activityCopy.labels.followers}: {followerNames.join(", ")}
+                          </p>
+                        ) : null}
+
+                        <div className="rounded-lg border border-dashed border-border/60 bg-muted/10 p-3">
+                          <button
+                            type="button"
+                            className="flex items-center gap-2 text-xs font-medium text-muted-foreground transition hover:text-foreground"
+                            onClick={() => handleToggleComments(activity.id)}
+                          >
+                            <MessageCircleMore className="h-4 w-4" />
+                            {commentsCopy.count.replace(
+                              "{{count}}",
+                              String(activity.comments?.length ?? 0),
+                            )}
+                          </button>
+
+                          {activeCommentActivity === activity.id ? (
+                            <div className="mt-3 space-y-3">
+                              {activity.comments?.length ? (
+                                <div className="space-y-2">
+                                  {activity.comments.map((comment) => {
+                                    const authorName =
+                                      comment.author?.name?.trim() ||
+                                      comment.author?.email ||
+                                      commentsCopy.unknownAuthor;
+                                    const postedAt = formatDate(comment.createdAt, {
+                                      locale,
+                                      format: {
+                                        day: "2-digit",
+                                        month: "2-digit",
+                                        year: "numeric",
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      },
+                                    });
+                                    return (
+                                      <div key={comment.id} className="rounded-lg border border-border/70 bg-background p-3">
+                                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                          <span className="font-semibold text-foreground">{authorName}</span>
+                                          <span>{commentsCopy.postedAt.replace("{{date}}", postedAt)}</span>
+                                        </div>
+                                        <div className="mt-2 whitespace-pre-line text-sm text-foreground">
+                                          {renderCommentContent(comment)}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-muted-foreground">{commentsCopy.empty}</p>
+                              )}
+
+                              <MentionTextarea
+                                users={mentionUsers}
+                                value={commentDrafts[activity.id]?.content ?? ""}
+                                mentions={commentDrafts[activity.id]?.mentions ?? []}
+                                onChange={(text) => handleCommentChange(activity.id, text)}
+                                onMentionsChange={(ids) => handleMentionsChange(activity.id, ids)}
+                                placeholder={commentsCopy.placeholder}
+                                disabled={commentMutation.isPending}
+                              />
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setActiveCommentActivity(null);
+                                  }}
+                                >
+                                  {commentsCopy.cancel}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  onClick={() => handleCommentSubmit(activity.id)}
+                                  disabled={commentMutation.isPending}
+                                >
+                                  {commentMutation.isPending
+                                    ? commentsCopy.submitting
+                                    : commentsCopy.submit}
+                                </Button>
+                              </div>
+                              {workspaceUsersQuery.isError ? (
+                                <p className="text-xs text-destructive">{commentsCopy.usersError}</p>
+                              ) : null}
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
-                      <p
-                        className={cn(
-                          "text-sm whitespace-pre-line",
-                          isOverdue ? "text-destructive" : "text-muted-foreground",
-                        )}
-                      >
-                        {activity.content}
-                      </p>
-                    </div>
                     </li>
                   );
                 })}
@@ -593,17 +970,36 @@ export function LeadDetailClient({ leadId }: Props) {
       </div>
 
       <ActivityDialog
+        mode="create"
         lead={lead}
+        initialValues={activityInitialValues}
         open={activityDialogOpen}
-        onOpenChange={setActivityDialogOpen}
-        initialType={activityType}
-        initialContent={activityPrefill}
-        onCreate={async ({ type, content, dueAt }) => {
-          await addActivityMutation.mutateAsync({ type, content, dueAt });
+        onOpenChange={(open) => {
+          setActivityDialogOpen(open);
+          if (!open) {
+            setActivityInitialValues({
+              type: "note",
+              status: "OPEN",
+              priority: "MEDIUM",
+              content: "",
+              assigneeId: "",
+              followers: [],
+            });
+          }
+        }}
+        onSubmit={async (formData) => {
+          const { leadId, activityId, assigneeId, ...body } = formData;
+          void activityId;
+          void leadId;
+          await addActivityMutation.mutateAsync({
+            ...body,
+            assigneeId: assigneeId ?? null,
+          });
         }}
       />
 
       <LeadTransitionDialog lead={lead} open={transitionOpen} onOpenChange={setTransitionOpen} />
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }

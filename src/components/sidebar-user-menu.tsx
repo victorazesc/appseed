@@ -1,7 +1,7 @@
 "use client";
 
 import { signOut } from "next-auth/react";
-import { ChevronDown, LogOut, Settings2, UserRound } from "lucide-react";
+import { CheckSquare, ChevronDown, LogOut, Settings2, UserRound } from "lucide-react";
 import Link from "next/link";
 
 import {
@@ -28,6 +28,7 @@ export function SidebarUserMenu({ user }: SidebarUserMenuProps) {
   const workspaceSlug = workspace?.slug;
   const settingsHref = workspaceSlug ? `/${workspaceSlug}/settings` : "/auth/post-login";
   const profileHref = workspaceSlug ? `/${workspaceSlug}/settings?section=preferences` : settingsHref;
+  const activitiesHref = workspaceSlug ? `/${workspaceSlug}/activities` : "/auth/post-login";
 
   const initials =
     user.name?.split(" ")?.map((part) => part[0])?.join("")?.slice(0, 2)?.toUpperCase() ?? "US";
@@ -58,6 +59,13 @@ export function SidebarUserMenu({ user }: SidebarUserMenuProps) {
             <Settings2 className="h-4 w-4" /> Configurações
           </Link>
         </DropdownMenuItem>
+        {workspaceSlug ? (
+          <DropdownMenuItem asChild>
+            <Link href={activitiesHref} className="flex items-center gap-2">
+              <CheckSquare className="h-4 w-4" /> Minhas atividades
+            </Link>
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuSeparator />
         <DropdownMenuItem
           className="flex items-center gap-2 text-destructive focus:text-destructive"

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { subHours } from "date-fns";
-import { ActivityType, type Prisma } from "@prisma/client";
+import { ActivityPriority, ActivityStatus, ActivityType, type Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { jsonError } from "@/lib/http";
@@ -190,8 +190,12 @@ async function processPipelineWebhookRequest({ pipeline, request }: ProcessParam
       await tx.activity.create({
         data: {
           type: ActivityType.note,
+          title: noteContent.slice(0, 140),
           content: noteContent,
           leadId: lead.id,
+          workspaceId: pipeline.workspaceId,
+          status: ActivityStatus.OPEN,
+          priority: ActivityPriority.MEDIUM,
         },
       });
     }

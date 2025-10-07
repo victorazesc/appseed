@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ActivityType } from "@prisma/client";
+import { ActivityPriority, ActivityStatus, ActivityType } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 
 import { mailer, isMailerConfigured } from "@/app/configs/nodemailer.config";
@@ -136,15 +136,24 @@ async function createOrUpdateLead(data: SanitizedPayload) {
           archived: false,
           OR: leadMatchFilters,
         },
+        include: {
+          pipeline: {
+            select: { workspaceId: true },
+          },
+        },
       })
     : null;
 
   if (existingLead) {
     await prisma.activity.create({
       data: {
+        workspaceId: existingLead.pipeline.workspaceId,
         leadId: existingLead.id,
         type: ActivityType.note,
+        title: activityContent.slice(0, 140),
         content: activityContent,
+        status: ActivityStatus.OPEN,
+        priority: ActivityPriority.MEDIUM,
       },
     });
     return existingLead;
@@ -161,7 +170,11 @@ async function createOrUpdateLead(data: SanitizedPayload) {
       activities: {
         create: {
           type: ActivityType.note,
+          title: activityContent.slice(0, 140),
           content: activityContent,
+          workspaceId: pipeline.workspaceId,
+          status: ActivityStatus.OPEN,
+          priority: ActivityPriority.MEDIUM,
         },
       },
     },

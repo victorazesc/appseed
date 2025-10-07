@@ -24,4 +24,12 @@ export type WorkspaceContextData = {
   impersonated: boolean;
 };
 
+export type WorkspaceUserSummary = {
+  id: string;
+  name: string | null;
+  email: string | null;
+  image: string | null;
+  role: WorkspaceRole;
+};
+
 export { WorkspaceRole };

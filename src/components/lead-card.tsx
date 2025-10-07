@@ -46,6 +46,20 @@ export function LeadCard({ lead, onOpenDetails, onAddActivity, dragging }: LeadC
     "{{count}}",
     String(lead._count?.activities ?? 0),
   );
+  const nextActivityLabel = nextDueAt
+    ? crm.leadCard.nextActivity.replace(
+        "{{date}}",
+        formatDate(nextDueAt.toISOString(), {
+          locale,
+          format: {
+            day: "2-digit",
+            month: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          },
+        }),
+      )
+    : crm.leadCard.noNextActivity;
 
   return (
     <Card
@@ -111,6 +125,10 @@ export function LeadCard({ lead, onOpenDetails, onAddActivity, dragging }: LeadC
           <Plus className="mr-1 h-3.5 w-3.5" />
           {crm.leadCard.addActivity}
         </Button>
+      </div>
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Clock className="h-3.5 w-3.5" />
+        <span>{nextActivityLabel}</span>
       </div>
     </Card>
   );

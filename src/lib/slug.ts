@@ -15,7 +15,10 @@ export async function generateUniqueWorkspaceSlug(name: string) {
   let counter = 1;
 
   while (true) {
-    const existing = await prisma.workspace.findUnique({ where: { slug: candidate } });
+    const existing = await prisma.workspace.findFirst({
+      where: { slug: candidate },
+      select: { id: true },
+    });
     if (!existing) {
       return candidate;
     }

@@ -40,8 +40,13 @@ type CreateLeadInput = {
 type ActivityInput = {
   leadId: string;
   type: "note" | "call" | "email" | "whatsapp" | "task";
+  title?: string;
   content: string;
   dueAt?: string;
+  status?: "OPEN" | "COMPLETED";
+  priority?: "LOW" | "MEDIUM" | "HIGH";
+  assigneeId?: string | null;
+  followers?: string[];
 };
 
 export default function DashboardPage() {
@@ -495,13 +500,21 @@ export default function DashboardPage() {
       />
 
       <ActivityDialog
+        mode="create"
         lead={activityLead}
+        initialValues={{ type: "note", status: "OPEN", priority: "MEDIUM", content: "" }}
         open={Boolean(activityLead)}
         onOpenChange={(open) => {
           if (!open) setActivityLead(null);
         }}
-        onCreate={async ({ leadId, ...payload }) => {
-          await addActivityMutation.mutateAsync({ leadId, ...payload });
+        onSubmit={async (formData) => {
+          const { leadId, assigneeId, activityId, ...payload } = formData;
+          void activityId;
+          await addActivityMutation.mutateAsync({
+            leadId,
+            ...payload,
+            assigneeId: assigneeId ?? null,
+          });
           setActivityLead(null);
         }}
       />

@@ -64,10 +64,67 @@ export type LeadSummary = {
 export type Activity = {
   id: string;
   type: "note" | "call" | "email" | "whatsapp" | "task";
+  title?: string;
   content: string;
+  status?: "OPEN" | "COMPLETED";
+  priority?: "LOW" | "MEDIUM" | "HIGH";
   dueAt?: string | null;
+  completedAt?: string | null;
   createdAt: string;
-  createdBy?: string | null;
+  updatedAt?: string;
+  assigneeId?: string | null;
+  createdById?: string | null;
+  assignee?: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    image: string | null;
+  } | null;
+  createdBy?: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    image: string | null;
+  } | null;
+  followers?: Array<{
+    id: string;
+    name: string | null;
+    email: string | null;
+    image: string | null;
+  }>;
+  comments?: ActivityComment[];
+  lead?: {
+    id: string;
+    name: string;
+    pipeline?: {
+      id: string;
+      name: string;
+    } | null;
+    stage?: {
+      id: string;
+      name: string;
+    } | null;
+  } | null;
+};
+
+export type ActivityComment = {
+  id: string;
+  activityId: string;
+  content: string;
+  author: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    image: string | null;
+  } | null;
+  mentions: Array<{
+    id: string;
+    name: string | null;
+    email: string | null;
+    image: string | null;
+  }>;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type LeadDetail = LeadSummary & {

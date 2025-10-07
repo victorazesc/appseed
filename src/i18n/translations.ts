@@ -254,6 +254,8 @@ type CrmTranslations = {
     activities: string;
     attention: string;
     addActivity: string;
+    nextActivity: string;
+    noNextActivity: string;
   };
   clients: {
     title: string;
@@ -345,6 +347,19 @@ type CrmTranslations = {
       title: string;
       empty: string;
     };
+    comments: {
+      count: string;
+      empty: string;
+      placeholder: string;
+      submit: string;
+      submitting: string;
+      cancel: string;
+      postedAt: string;
+      unknownAuthor: string;
+      usersError: string;
+      toastCreated: string;
+      validationRequired: string;
+    };
     buttons: {
       sendEmail: string;
       addActivity: string;
@@ -386,11 +401,17 @@ type CrmTranslations = {
     };
     activity: {
       title: string;
+      editTitle: string;
       titleWithLead: string;
       fields: {
         type: string;
+        title: string;
         content: string;
         dueAt: string;
+        priority: string;
+        status: string;
+        assignee: string;
+        followers: string;
       };
       types: {
         note: string;
@@ -401,13 +422,102 @@ type CrmTranslations = {
       };
       placeholders: {
         content: string;
+        title: string;
+        assignee: string;
       };
       validation: {
         contentRequired: string;
+        dueAtRequired: string;
+      };
+      priorities: {
+        low: string;
+        medium: string;
+        high: string;
+      };
+      statuses: {
+        open: string;
+        completed: string;
+      };
+      labels: {
+        assignee: string;
+        followers: string;
+        unknownUser: string;
+      };
+      feedback: {
+        usersLoading: string;
+        usersEmpty: string;
+        usersError: string;
       };
       submit: string;
       submitting: string;
       cancel: string;
+    };
+  };
+  activities: {
+    title: string;
+    subtitle: string;
+    empty: string;
+    filters: {
+      status: string;
+      statusOpen: string;
+      statusOverdue: string;
+      statusCompleted: string;
+      statusAll: string;
+      type: string;
+      typeAll: string;
+      priority: string;
+      priorityAll: string;
+      pipeline: string;
+      pipelineAll: string;
+      assignee: string;
+      assigneeAll: string;
+      due: string;
+      dueAll: string;
+      dueToday: string;
+      dueWeek: string;
+      dueCustom: string;
+      reset: string;
+    };
+    table: {
+      activity: string;
+      lead: string;
+      pipeline: string;
+      assignee: string;
+      dueDate: string;
+      status: string;
+      actions: string;
+      complete: string;
+      edit: string;
+      delete: string;
+      deleteConfirm: string;
+      noDueDate: string;
+      noAssignee: string;
+      noLead: string;
+      noPipeline: string;
+      noStage: string;
+      followersCount: string;
+    };
+    types: {
+      note: string;
+      call: string;
+      email: string;
+      whatsapp: string;
+      task: string;
+    };
+    priorities: {
+      low: string;
+      medium: string;
+      high: string;
+    };
+    statuses: {
+      open: string;
+      completed: string;
+    };
+    toasts: {
+      completed: string;
+      updated: string;
+      deleted: string;
+      reassigned: string;
     };
   };
   toasts: {
@@ -1233,6 +1343,8 @@ export const translations: Record<Language, {
         activities: "{{count}} atividades",
         attention: "Atenção",
         addActivity: "Atividade",
+        nextActivity: "Próxima atividade em {{date}}",
+        noNextActivity: "Sem atividades pendentes",
       },
       clients: {
         title: "Clientes e Leads",
@@ -1325,6 +1437,19 @@ export const translations: Record<Language, {
           title: "Timeline de atividades",
           empty: "Sem atividades registradas.",
         },
+        comments: {
+          count: "{{count}} comentários",
+          empty: "Nenhum comentário ainda.",
+          placeholder: "Escreva um comentário e use @ para mencionar alguém",
+          submit: "Publicar",
+          submitting: "Publicando...",
+          cancel: "Cancelar",
+          postedAt: "Enviado em {{date}}",
+          unknownAuthor: "Usuário",
+          usersError: "Não foi possível carregar os usuários do workspace.",
+          toastCreated: "Comentário publicado.",
+          validationRequired: "Escreva um comentário antes de enviar.",
+        },
         buttons: {
           sendEmail: "Enviar e-mail",
           addActivity: "+ Atividade",
@@ -1366,11 +1491,17 @@ export const translations: Record<Language, {
         },
         activity: {
           title: "Nova atividade",
+          editTitle: "Editar atividade",
           titleWithLead: "Nova atividade para {{lead}}",
           fields: {
             type: "Tipo",
+            title: "Título",
             content: "Conteúdo",
             dueAt: "Vencimento",
+            priority: "Prioridade",
+            status: "Status",
+            assignee: "Responsável",
+            followers: "Seguidores",
           },
           types: {
             note: "Nota",
@@ -1381,15 +1512,104 @@ export const translations: Record<Language, {
           },
           placeholders: {
             content: "Descreva a atividade",
+            title: "Resumo curto",
+            assignee: "Escolha um responsável",
           },
           validation: {
             contentRequired: "Informe o conteúdo",
+            dueAtRequired: "Informe o vencimento",
           },
-          submit: "Salvar",
-          submitting: "Salvando...",
-          cancel: "Cancelar",
-        },
+          priorities: {
+            low: "Baixa",
+            medium: "Média",
+            high: "Alta",
+          },
+          statuses: {
+            open: "Em aberto",
+            completed: "Concluída",
+          },
+          labels: {
+            assignee: "Responsável",
+            followers: "Participantes",
+            unknownUser: "Usuário",
+          },
+          feedback: {
+            usersLoading: "Carregando usuários...",
+            usersEmpty: "Nenhum membro encontrado",
+            usersError: "Não foi possível carregar os usuários.",
+          },
+        submit: "Salvar",
+        submitting: "Salvando...",
+        cancel: "Cancelar",
       },
+    },
+    activities: {
+      title: "Minhas atividades",
+      subtitle: "Visualize e gerencie as atividades atribuídas a você e ao seu time.",
+      empty: "Nada por aqui. Crie uma atividade em um lead.",
+      filters: {
+        status: "Status",
+        statusOpen: "Em aberto",
+        statusOverdue: "Atrasadas",
+        statusCompleted: "Concluídas",
+        statusAll: "Todos",
+        type: "Tipo",
+        typeAll: "Todos os tipos",
+        priority: "Prioridade",
+        priorityAll: "Todas",
+        pipeline: "Funil",
+        pipelineAll: "Todos os funis",
+        assignee: "Responsável",
+        assigneeAll: "Todos",
+        due: "Vencimento",
+        dueAll: "Todas as datas",
+        dueToday: "Hoje",
+        dueWeek: "Próximos 7 dias",
+        dueCustom: "Personalizado",
+        reset: "Limpar filtros",
+      },
+      table: {
+        activity: "Atividade",
+        lead: "Lead/Cliente",
+        pipeline: "Funil/Etapa",
+        assignee: "Responsável",
+        dueDate: "Vencimento",
+        status: "Status",
+        actions: "Ações",
+        complete: "Concluir",
+        edit: "Editar",
+        delete: "Excluir",
+        deleteConfirm: "Tem certeza que deseja excluir esta atividade?",
+        noDueDate: "—",
+        noAssignee: "Sem responsável",
+        noLead: "Sem lead",
+        noPipeline: "Sem funil",
+        noStage: "Sem etapa",
+        followersCount: "{{count}} seguidores",
+      },
+      types: {
+        note: "Nota",
+        call: "Ligação",
+        email: "E-mail",
+        whatsapp: "WhatsApp",
+        task: "Tarefa",
+      },
+      priorities: {
+        low: "Baixa",
+        medium: "Média",
+        high: "Alta",
+      },
+      statuses: {
+        open: "Em aberto",
+        completed: "Concluída",
+      },
+      toasts: {
+        completed: "Atividade concluída.",
+        updated: "Atividade atualizada.",
+        deleted: "Atividade excluída.",
+        reassigned: "Responsável atualizado.",
+      },
+    },
       toasts: {
         leadCreated: "Lead criado com sucesso.",
         activityLogged: "Atividade registrada.",
@@ -2068,6 +2288,8 @@ export const translations: Record<Language, {
         activities: "{{count}} activities",
         attention: "Attention",
         addActivity: "Activity",
+        nextActivity: "Next activity on {{date}}",
+        noNextActivity: "No upcoming activities",
       },
       clients: {
         title: "Clients & Leads",
@@ -2159,6 +2381,19 @@ export const translations: Record<Language, {
           title: "Activity timeline",
           empty: "No activities yet.",
         },
+        comments: {
+          count: "{{count}} comments",
+          empty: "No comments yet.",
+          placeholder: "Write a comment and use @ to mention someone",
+          submit: "Post",
+          submitting: "Posting...",
+          cancel: "Cancel",
+          postedAt: "Posted on {{date}}",
+          unknownAuthor: "User",
+          usersError: "Could not load workspace users.",
+          toastCreated: "Comment posted.",
+          validationRequired: "Write a comment before posting.",
+        },
         buttons: {
           sendEmail: "Send email",
           addActivity: "+ Activity",
@@ -2200,11 +2435,17 @@ export const translations: Record<Language, {
         },
         activity: {
           title: "New activity",
+          editTitle: "Edit activity",
           titleWithLead: "New activity for {{lead}}",
           fields: {
             type: "Type",
+            title: "Title",
             content: "Content",
             dueAt: "Due date",
+            priority: "Priority",
+            status: "Status",
+            assignee: "Assignee",
+            followers: "Followers",
           },
           types: {
             note: "Note",
@@ -2215,15 +2456,104 @@ export const translations: Record<Language, {
           },
           placeholders: {
             content: "Describe the activity",
+            title: "Short summary",
+            assignee: "Select a responsible",
           },
           validation: {
             contentRequired: "Content is required",
+            dueAtRequired: "Due date is required",
           },
-          submit: "Save",
-          submitting: "Saving...",
-          cancel: "Cancel",
-        },
+          priorities: {
+            low: "Low",
+            medium: "Medium",
+            high: "High",
+          },
+          statuses: {
+            open: "Open",
+            completed: "Completed",
+          },
+          labels: {
+            assignee: "Assignee",
+            followers: "Followers",
+            unknownUser: "User",
+          },
+          feedback: {
+            usersLoading: "Loading users...",
+            usersEmpty: "No members available",
+            usersError: "Could not load workspace users.",
+          },
+        submit: "Save",
+        submitting: "Saving...",
+        cancel: "Cancel",
       },
+    },
+    activities: {
+      title: "My activities",
+      subtitle: "View and manage activities assigned to you and your team.",
+      empty: "Nothing here yet. Create an activity from a lead.",
+      filters: {
+        status: "Status",
+        statusOpen: "Open",
+        statusOverdue: "Overdue",
+        statusCompleted: "Completed",
+        statusAll: "All",
+        type: "Type",
+        typeAll: "All types",
+        priority: "Priority",
+        priorityAll: "All priorities",
+        pipeline: "Pipeline",
+        pipelineAll: "All pipelines",
+        assignee: "Assignee",
+        assigneeAll: "Everyone",
+        due: "Due date",
+        dueAll: "All dates",
+        dueToday: "Today",
+        dueWeek: "Next 7 days",
+        dueCustom: "Custom range",
+        reset: "Reset filters",
+      },
+      table: {
+        activity: "Activity",
+        lead: "Lead / Customer",
+        pipeline: "Pipeline / Stage",
+        assignee: "Assignee",
+        dueDate: "Due date",
+        status: "Status",
+        actions: "Actions",
+        complete: "Complete",
+        edit: "Edit",
+        delete: "Delete",
+        deleteConfirm: "Do you really want to delete this activity?",
+        noDueDate: "—",
+        noAssignee: "Unassigned",
+        noLead: "No lead",
+        noPipeline: "No pipeline",
+        noStage: "No stage",
+        followersCount: "{{count}} followers",
+      },
+      types: {
+        note: "Note",
+        call: "Call",
+        email: "Email",
+        whatsapp: "WhatsApp",
+        task: "Task",
+      },
+      priorities: {
+        low: "Low",
+        medium: "Medium",
+        high: "High",
+      },
+      statuses: {
+        open: "Open",
+        completed: "Completed",
+      },
+      toasts: {
+        completed: "Activity completed.",
+        updated: "Activity updated.",
+        deleted: "Activity deleted.",
+        reassigned: "Assignee updated.",
+      },
+    },
       toasts: {
         leadCreated: "Lead created successfully.",
         activityLogged: "Activity recorded.",
@@ -2902,6 +3232,8 @@ export const translations: Record<Language, {
         activities: "{{count}} actividades",
         attention: "Atención",
         addActivity: "Actividad",
+        nextActivity: "Próxima actividad el {{date}}",
+        noNextActivity: "Sin actividades pendientes",
       },
       clients: {
         title: "Clientes y Leads",
@@ -2994,6 +3326,19 @@ export const translations: Record<Language, {
           title: "Cronología de actividades",
           empty: "Sin actividades registradas.",
         },
+        comments: {
+          count: "{{count}} comentarios",
+          empty: "No hay comentarios todavía.",
+          placeholder: "Escribe un comentario y usa @ para mencionar a alguien",
+          submit: "Publicar",
+          submitting: "Publicando...",
+          cancel: "Cancelar",
+          postedAt: "Publicado el {{date}}",
+          unknownAuthor: "Usuario",
+          usersError: "No fue posible cargar los usuarios del workspace.",
+          toastCreated: "Comentario publicado.",
+          validationRequired: "Escribe un comentario antes de enviar.",
+        },
         buttons: {
           sendEmail: "Enviar correo",
           addActivity: "+ Actividad",
@@ -3035,11 +3380,17 @@ export const translations: Record<Language, {
         },
         activity: {
           title: "Nueva actividad",
+          editTitle: "Editar actividad",
           titleWithLead: "Nueva actividad para {{lead}}",
           fields: {
             type: "Tipo",
+            title: "Título",
             content: "Contenido",
             dueAt: "Vencimiento",
+            priority: "Prioridad",
+            status: "Estado",
+            assignee: "Responsable",
+            followers: "Seguidores",
           },
           types: {
             note: "Nota",
@@ -3050,15 +3401,104 @@ export const translations: Record<Language, {
           },
           placeholders: {
             content: "Describe la actividad",
+            title: "Resumen breve",
+            assignee: "Selecciona un responsable",
           },
           validation: {
             contentRequired: "Ingresa el contenido",
+            dueAtRequired: "Indica la fecha de vencimiento",
           },
-          submit: "Guardar",
-          submitting: "Guardando...",
-          cancel: "Cancelar",
-        },
+          priorities: {
+            low: "Baja",
+            medium: "Media",
+            high: "Alta",
+          },
+          statuses: {
+            open: "Abierta",
+            completed: "Completada",
+          },
+          labels: {
+            assignee: "Responsable",
+            followers: "Participantes",
+            unknownUser: "Usuario",
+          },
+          feedback: {
+            usersLoading: "Cargando usuarios...",
+            usersEmpty: "No hay miembros disponibles",
+            usersError: "No fue posible cargar los usuarios del workspace.",
+          },
+        submit: "Guardar",
+        submitting: "Guardando...",
+        cancel: "Cancelar",
       },
+    },
+    activities: {
+      title: "Mis actividades",
+      subtitle: "Consulta y gestiona las actividades asignadas a ti y a tu equipo.",
+      empty: "Nada por aquí. Crea una actividad desde un lead.",
+      filters: {
+        status: "Estado",
+        statusOpen: "En curso",
+        statusOverdue: "Atrasadas",
+        statusCompleted: "Completadas",
+        statusAll: "Todos",
+        type: "Tipo",
+        typeAll: "Todos los tipos",
+        priority: "Prioridad",
+        priorityAll: "Todas",
+        pipeline: "Embudo",
+        pipelineAll: "Todos los embudos",
+        assignee: "Responsable",
+        assigneeAll: "Todos",
+        due: "Vencimiento",
+        dueAll: "Todas las fechas",
+        dueToday: "Hoy",
+        dueWeek: "Próximos 7 días",
+        dueCustom: "Personalizado",
+        reset: "Limpiar filtros",
+      },
+      table: {
+        activity: "Actividad",
+        lead: "Lead/Cliente",
+        pipeline: "Embudo/Etapa",
+        assignee: "Responsable",
+        dueDate: "Vencimiento",
+        status: "Estado",
+        actions: "Acciones",
+        complete: "Completar",
+        edit: "Editar",
+        delete: "Eliminar",
+        deleteConfirm: "¿Deseas eliminar esta actividad?",
+        noDueDate: "—",
+        noAssignee: "Sin responsable",
+        noLead: "Sin lead",
+        noPipeline: "Sin embudo",
+        noStage: "Sin etapa",
+        followersCount: "{{count}} seguidores",
+      },
+      types: {
+        note: "Nota",
+        call: "Llamada",
+        email: "Correo",
+        whatsapp: "WhatsApp",
+        task: "Tarea",
+      },
+      priorities: {
+        low: "Baja",
+        medium: "Media",
+        high: "Alta",
+      },
+      statuses: {
+        open: "Abierta",
+        completed: "Completada",
+      },
+      toasts: {
+        completed: "Actividad completada.",
+        updated: "Actividad actualizada.",
+        deleted: "Actividad eliminada.",
+        reassigned: "Responsable actualizado.",
+      },
+    },
       toasts: {
         leadCreated: "Lead creado con éxito.",
         activityLogged: "Actividad registrada.",

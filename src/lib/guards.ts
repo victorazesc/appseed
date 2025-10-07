@@ -21,11 +21,27 @@ export async function getWorkspaceBySlug(slug: string) {
 export async function requireWorkspace(slug: string) {
   const user = await assertAuthenticated();
 
-  const workspace = await prisma.workspace.findUnique({
+  const workspace = await prisma.workspace.findFirst({
     where: { slug },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      color: true,
+      archived: true,
+      createdById: true,
+      createdAt: true,
+      updatedAt: true,
       memberships: {
         where: { userId: user.id },
+        select: {
+          id: true,
+          userId: true,
+          workspaceId: true,
+          role: true,
+          createdAt: true,
+          updatedAt: true,
+        },
       },
     },
   });

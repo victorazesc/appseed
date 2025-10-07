@@ -16,6 +16,17 @@ enum ActivityType {
   task
 }
 
+enum ActivityStatus {
+  OPEN
+  COMPLETED
+}
+
+enum ActivityPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
 enum StageTransitionMode {
   NONE
   MANUAL
@@ -60,6 +71,11 @@ model User {
   invitesCreated     Invite[]               @relation("InviteCreator")
   workspacesCreated  Workspace[]            @relation("WorkspaceCreator")
   auditLogs          AuditLog[]             @relation("AuditActor")
+  activitiesAssigned Activity[]             @relation("ActivityAssignee")
+  activitiesCreated  Activity[]             @relation("ActivityCreator")
+  activityFollowers  ActivityFollower[]
+  activityComments   ActivityComment[]      @relation("ActivityCommentAuthor")
+  activityMentions   ActivityCommentMention[] @relation("ActivityCommentMentionUser")
   impersonations     ImpersonationSession[] @relation("Impersonator")
   tokens             UserToken[]
 }
@@ -118,6 +134,7 @@ model Workspace {
   pipelines      Pipeline[]
   auditLogs      AuditLog[]
   impersonations ImpersonationSession[]
+  activities     Activity[]
 }
 
 model Membership {
@@ -258,12 +275,64 @@ model Lead {
 }
 
 model Activity {
-  id        String       @id @default(cuid())
-  type      ActivityType
-  content   String
-  dueAt     DateTime?
-  createdBy String?
-  lead      Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  leadId    String
-  createdAt DateTime     @default(now())
+  id           String           @id @default(cuid())
+  workspace    Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId  String
+  lead         Lead             @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId       String
+  type         ActivityType
+  title        String           @default("")
+  content      String
+  status       ActivityStatus   @default(OPEN)
+  priority     ActivityPriority @default(MEDIUM)
+  dueAt        DateTime?
+  completedAt  DateTime?
+  assignee     User?            @relation("ActivityAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  assigneeId   String?
+  createdBy    User?            @relation("ActivityCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById  String?
+  followers    ActivityFollower[]
+  comments     ActivityComment[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([workspaceId])
+  @@index([leadId])
+  @@index([assigneeId])
+  @@index([status])
+  @@index([dueAt])
+}
+
+model ActivityFollower {
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  activityId String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  createdAt  DateTime @default(now())
+
+  @@id([activityId, userId])
+  @@index([userId])
+}
+
+model ActivityComment {
+  id         String                    @id @default(cuid())
+  activity   Activity                  @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  activityId String
+  author     User?                     @relation("ActivityCommentAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  authorId   String?
+  content    String
+  mentions   ActivityCommentMention[]
+  createdAt  DateTime                  @default(now())
+  updatedAt  DateTime                  @updatedAt
+}
+
+model ActivityCommentMention {
+  id        String          @id @default(cuid())
+  comment   ActivityComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  commentId String
+  user      User            @relation("ActivityCommentMentionUser", fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime        @default(now())
+
+  @@index([userId])
 }

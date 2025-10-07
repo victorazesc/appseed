@@ -34,6 +34,20 @@ const dueDateSchema = z
 
 const hexColorRegex = /^#(?:[0-9a-fA-F]{3}){1,2}$/;
 
+const nullableDueDateSchema = z
+  .union([z.date(), z.string(), z.null()])
+  .optional()
+  .transform((value, ctx) => {
+    if (value === null) return null;
+    if (!value) return undefined;
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Data inválida" });
+      return z.NEVER;
+    }
+    return date;
+  });
+
 export const leadCreateSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
   email: z.string().email().optional(),
@@ -66,11 +80,82 @@ export const leadQuerySchema = z.object({
     }),
 });
 
+const activityStatusSchema = z
+  .enum(["OPEN", "COMPLETED"] as const)
+  .optional();
+
+const activityPrioritySchema = z
+  .enum(["LOW", "MEDIUM", "HIGH"] as const)
+  .optional();
+
 export const activityCreateSchema = z.object({
   type: z.enum(["note", "call", "email", "whatsapp", "task"]),
+  title: z
+    .string()
+    .trim()
+    .min(1, "Informe um título")
+    .max(140, "Título muito longo")
+    .optional(),
   content: z.string().min(1, "Conteúdo obrigatório"),
   dueAt: dueDateSchema,
-  createdBy: z.string().optional(),
+  assigneeId: z.string().min(1).optional(),
+  priority: activityPrioritySchema,
+  status: activityStatusSchema,
+  followers: z.array(z.string().min(1)).optional(),
+});
+
+export const activityCreateWithLeadSchema = activityCreateSchema.extend({
+  leadId: z.string().min(1, "Lead é obrigatório"),
+});
+
+export const activityUpdateSchema = z
+  .object({
+    type: z.enum(["note", "call", "email", "whatsapp", "task"]).optional(),
+    title: z
+      .string()
+      .trim()
+      .min(1, "Informe um título")
+      .max(140, "Título muito longo")
+      .optional(),
+    content: z.string().min(1, "Conteúdo obrigatório").optional(),
+    dueAt: nullableDueDateSchema,
+    status: activityStatusSchema,
+    priority: activityPrioritySchema,
+    assigneeId: z.string().min(1).nullable().optional(),
+    followers: z.array(z.string().min(1)).optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "Nenhuma alteração informada",
+  });
+
+export const activityQuerySchema = z.object({
+  assigneeId: z.string().optional(),
+  leadId: z.string().optional(),
+  pipelineId: z.string().optional(),
+  status: z.string().optional(),
+  type: z.enum(["note", "call", "email", "whatsapp", "task"]).optional(),
+  priority: z.enum(["LOW", "MEDIUM", "HIGH"]).optional(),
+  dueFrom: z.string().optional(),
+  dueTo: z.string().optional(),
+  sort: z.enum(["dueAt", "priority", "createdAt"]).optional(),
+  direction: z.enum(["asc", "desc"]).optional(),
+  limit: z
+    .union([z.string(), z.number()])
+    .optional()
+    .transform((value, ctx) => {
+      if (value === undefined || value === null || value === "") return undefined;
+      const parsed = Number(value);
+      if (!Number.isInteger(parsed) || parsed <= 0) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Limite inválido" });
+        return z.NEVER;
+      }
+      return Math.min(parsed, 200);
+    }),
+});
+
+export const activityCommentSchema = z.object({
+  content: z.string().min(1, "Escreva um comentário"),
+  mentions: z.array(z.string().min(1)).optional(),
 });
 
 export const metricsQuerySchema = z.object({
