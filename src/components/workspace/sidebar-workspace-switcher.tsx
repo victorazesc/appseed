@@ -37,8 +37,7 @@ export function WorkspaceSidebarSwitcher() {
       <DropdownMenuTrigger asChild>
         <button className="flex h-10 flex-1 items-center justify-between rounded-lg bg-transparent px-2 text-left transition hover:bg-muted/60 focus:outline-none">
           <span className="flex items-center gap-2">
-            <span className="inline-flex h-2.5 w-2.5 rounded-full" style={{ backgroundColor: activeColor }} />
-            <span className="truncate text-sm font-medium text-foreground">{buttonLabel}</span>
+            <span className="truncate text-sm font-semibold text-foreground">{buttonLabel}</span>
           </span>
           <ChevronDown className="h-4 w-4 text-muted-foreground" />
         </button>
