@@ -216,6 +216,7 @@ type CrmTranslations = {
         themeDescription: string;
         themeUpdatedDark: string;
         themeUpdatedLight: string;
+        themeUpdatedSystem: string;
         languageLabel: string;
         languageDescription: string;
         languageUpdated: string;
@@ -535,6 +536,7 @@ export const translations: Record<Language, {
     themeToggle: {
       light: string;
       dark: string;
+      system: string;
       ariaLabel: string;
     };
     actions: {
@@ -684,6 +686,7 @@ export const translations: Record<Language, {
       themeToggle: {
         light: "Modo claro",
         dark: "Modo escuro",
+        system: "Tema do sistema",
         ariaLabel: "Alternar tema",
       },
       actions: {
@@ -1302,9 +1305,10 @@ export const translations: Record<Language, {
             title: "Experiência",
             subtitle: "Escolha como deseja visualizar o produto.",
             themeLabel: "Tema",
-            themeDescription: "Altere entre tema claro ou escuro conforme sua preferência.",
+            themeDescription: "Altere entre tema claro, escuro ou siga o tema do sistema conforme sua preferência.",
             themeUpdatedDark: "Tema escuro ativado.",
             themeUpdatedLight: "Tema claro ativado.",
+            themeUpdatedSystem: "Tema do sistema ativado.",
             languageLabel: "Idioma",
             languageDescription: "Defina o idioma da interface.",
             languageUpdated: "Idioma alterado para {{language}}.",
@@ -1629,6 +1633,7 @@ export const translations: Record<Language, {
       themeToggle: {
         light: "Light mode",
         dark: "Dark mode",
+        system: "System theme",
         ariaLabel: "Toggle theme",
       },
       actions: {
@@ -2247,9 +2252,10 @@ export const translations: Record<Language, {
             title: "Experience",
             subtitle: "Choose how you want to use the product.",
             themeLabel: "Theme",
-            themeDescription: "Switch between light and dark modes whenever you like.",
+            themeDescription: "Switch between light, dark, or follow your system theme whenever you like.",
             themeUpdatedDark: "Dark theme enabled.",
             themeUpdatedLight: "Light theme enabled.",
+            themeUpdatedSystem: "System theme enabled.",
             languageLabel: "Language",
             languageDescription: "Select the interface language.",
             languageUpdated: "Language changed to {{language}}.",
@@ -2573,6 +2579,7 @@ export const translations: Record<Language, {
       themeToggle: {
         light: "Modo claro",
         dark: "Modo oscuro",
+        system: "Tema del sistema",
         ariaLabel: "Cambiar tema",
       },
       actions: {
@@ -3191,9 +3198,10 @@ export const translations: Record<Language, {
             title: "Experiencia",
             subtitle: "Define cómo quieres ver el producto.",
             themeLabel: "Tema",
-            themeDescription: "Cambia entre tema claro u oscuro cuando quieras.",
+            themeDescription: "Cambia entre tema claro, oscuro o sigue el tema del sistema cuando quieras.",
             themeUpdatedDark: "Tema oscuro activado.",
             themeUpdatedLight: "Tema claro activado.",
+            themeUpdatedSystem: "Tema del sistema activado.",
             languageLabel: "Idioma",
             languageDescription: "Selecciona el idioma de la interfaz.",
             languageUpdated: "Idioma cambiado a {{language}}.",

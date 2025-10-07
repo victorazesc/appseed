@@ -63,25 +63,28 @@ export function StageColumn({ stage, leads, onOpenLead, onAddActivity }: StageCo
         stageStyle.container,
       )}
     >
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-            {stage.name}
-          </h3>
+      <div className="flex flex-col space-y-2" >
+
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          {stage.name}
+        </h3>
+
+        <div className="mt-1 flex items-center gap-2 w-full">
           <Badge className={cn(stageStyle.badge)} variant={isLossStage ? "destructive" : "secondary"}>
             {leadBadgeLabel}
           </Badge>
           <p className="mt-1 text-xs font-medium text-muted-foreground">{totalLabel}</p>
-          {hasTransitionRule ? (
-            <Badge
-              variant="outline"
-              className="mt-2 flex w-max items-center gap-1 text-[10px] font-semibold uppercase tracking-wide"
-            >
-              <Settings2 className="h-3 w-3" aria-hidden />
-              {ruleLabel}
-            </Badge>
-          ) : null}
         </div>
+        {hasTransitionRule ? (
+          <Badge
+            variant="outline"
+            className="mt-2 flex w-max items-center gap-1 text-[10px] font-semibold uppercase tracking-wide"
+          >
+            <Settings2 className="h-3 w-3" aria-hidden />
+            {ruleLabel}
+          </Badge>
+        ) : null}
+
       </div>
 
       <Droppable droppableId={stage.id}>

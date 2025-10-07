@@ -8,6 +8,42 @@ import { getWorkspacePipelines } from "@/lib/server/pipelines";
 import { getWorkspaceContext } from "@/lib/server/workspace";
 import type { WorkspaceServerContext } from "@/lib/server/workspace";
 import type { WorkspaceContextData } from "@/types/workspace";
+import type { Metadata } from "next";
+
+const WORKSPACE_DESCRIPTION =
+  "AppSeed é especialista em desenvolvimento de MVPs, aplicações web e crescimento pós-lançamento, com tecnologia moderna e metodologia ágil.";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ workspaceSlug: string }>;
+}): Promise<Metadata> {
+  const { workspaceSlug } = await params;
+
+  if (!workspaceSlug) {
+    return {
+      title: "Seedora | MVPs e Crescimento de Produtos Digitais",
+      description: WORKSPACE_DESCRIPTION,
+    };
+  }
+
+  try {
+    const context = await getWorkspaceContext(workspaceSlug);
+    const workspaceName = context.workspace.name || workspaceSlug;
+
+    return {
+      title: `${workspaceName} | MVPs e Crescimento de Produtos Digitais`,
+      description: WORKSPACE_DESCRIPTION,
+    };
+  } catch (error) {
+    console.error(`Failed to resolve workspace metadata for ${workspaceSlug}`, error);
+
+    return {
+      title: "Seedora | MVPs e Crescimento de Produtos Digitais",
+      description: WORKSPACE_DESCRIPTION,
+    };
+  }
+}
 
 export default async function WorkspaceLayout({
   children,
@@ -54,13 +90,13 @@ export default async function WorkspaceLayout({
     role: context.role,
     membership: context.membership
       ? {
-          id: context.membership.id,
-          userId: context.membership.userId,
-          workspaceId: context.membership.workspaceId,
-          role: context.membership.role,
-          createdAt: context.membership.createdAt.toISOString(),
-          updatedAt: context.membership.updatedAt.toISOString(),
-        }
+        id: context.membership.id,
+        userId: context.membership.userId,
+        workspaceId: context.membership.workspaceId,
+        role: context.membership.role,
+        createdAt: context.membership.createdAt.toISOString(),
+        updatedAt: context.membership.updatedAt.toISOString(),
+      }
       : null,
     impersonated: context.impersonated,
   };

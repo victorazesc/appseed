@@ -199,6 +199,35 @@ export function UsersIcon(props: IconProps) {
   );
 }
 
+export function GoogleIcon({ className, ...props }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+      className={cn("h-5 w-5", className)}
+      {...props}
+    >
+      <path
+        fill="#4285F4"
+        d="M21.35 11.1H12v2.9h5.35c-.23 1.3-.96 2.4-2.05 3.1v2.6h3.31C20.55 18.87 21.65 16.19 21.65 13c0-.73-.07-1.45-.2-2.15z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 22c2.74 0 5.04-.9 6.72-2.43l-3.31-2.6c-.9.61-2.05.97-3.41.97-2.62 0-4.84-1.77-5.64-4.15H2.88v2.6C4.54 19.98 8.01 22 12 22z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M6.36 13.79c-.2-.59-.32-1.21-.32-1.79s.12-1.2.32-1.79V7.61H2.88C2.27 8.97 2 10.46 2 12s.27 3.03.88 4.39l3.48-2.6z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 6.08c1.49 0 2.83.51 3.88 1.52l2.9-2.9C16.99 2.97 14.69 2 12 2 8.01 2 4.54 4.02 2.88 7.21l3.48 2.6C7.15 7.86 9.37 6.08 12 6.08z"
+      />
+    </svg>
+  );
+}
+
 export function CheckCircleIcon(props: IconProps) {
   return (
     <SvgIcon {...props}>

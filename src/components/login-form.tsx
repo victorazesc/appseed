@@ -4,12 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
-import { Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
+import { Loader2, Lock, Mail } from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { GoogleIcon } from "@/components/icons";
 import {
   Card,
   CardContent,
@@ -208,7 +209,7 @@ export function LoginForm({ className, defaultEmail, resetSuccess, ...props }: L
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-2">
-                      <ShieldCheck className="h-4 w-4" /> Continuar com Google
+                      <GoogleIcon className="h-4 w-4" /> Continuar com Google
                     </span>
                   )}
                 </Button>

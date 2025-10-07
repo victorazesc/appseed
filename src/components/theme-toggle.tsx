@@ -8,10 +8,10 @@ import { useTheme } from "@/contexts/theme-context";
 import { useTranslation } from "@/contexts/i18n-context";
 
 export function ThemeToggle({ className }: { className?: string }) {
-  const { theme, toggleTheme } = useTheme();
+  const { resolvedTheme, toggleTheme } = useTheme();
   const { messages } = useTranslation();
 
-  const isDark = theme === "dark";
+  const isDark = resolvedTheme === "dark";
   const label = isDark ? messages.common.themeToggle.light : messages.common.themeToggle.dark;
 
   return (

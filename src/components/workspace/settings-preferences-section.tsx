@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { useWorkspace } from "@/contexts/workspace-context";
 import { useTranslation } from "@/contexts/i18n-context";
 import { useTheme } from "@/contexts/theme-context";
+import type { ThemePreference } from "@/contexts/theme-context";
 import { apiFetch } from "@/lib/api-client";
 import { formatDate } from "@/lib/format";
 import type { Language } from "@/i18n/translations";
@@ -341,15 +342,18 @@ export function WorkspacePreferencesSection() {
                   id="workspace-settings-theme"
                   value={theme}
                   onChange={(event) => {
-                    const value = event.target.value === "dark" ? "dark" : "light";
+                    const value = event.target.value as ThemePreference;
                     setTheme(value);
                     toast.success(
                       value === "dark"
                         ? preferencesCopy.experience.themeUpdatedDark
-                        : preferencesCopy.experience.themeUpdatedLight,
+                        : value === "light"
+                          ? preferencesCopy.experience.themeUpdatedLight
+                          : preferencesCopy.experience.themeUpdatedSystem,
                     );
                   }}
                 >
+                  <option value="system">{messages.common.themeToggle.system}</option>
                   <option value="light">{messages.common.themeToggle.light}</option>
                   <option value="dark">{messages.common.themeToggle.dark}</option>
                 </Select>

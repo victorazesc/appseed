@@ -156,18 +156,22 @@ function FieldSeparator({
     <div
       data-slot="field-separator"
       data-content={Boolean(children)}
-      className={cn("relative -my-2 h-5 text-sm group-data-[variant=outline]/field-group:-mb-2", className)}
+      className={cn(
+        "relative flex items-center justify-center gap-2 my-4",
+        className
+      )}
       {...props}
     >
-      <Separator className="absolute inset-0 top-1/2" />
+      {/* Linha esquerda */}
+      <Separator className="flex-1 h-px bg-border" />
+
+      {/* Texto no meio */}
       {children ? (
-        <span
-          className="bg-background text-muted-foreground relative mx-auto block w-fit px-2"
-          data-slot="field-separator-content"
-        >
-          {children}
-        </span>
+        <span className="px-2 text-sm text-muted-foreground">{children}</span>
       ) : null}
+
+      {/* Linha direita */}
+      <Separator className="flex-1 h-px bg-border" />
     </div>
   );
 }
