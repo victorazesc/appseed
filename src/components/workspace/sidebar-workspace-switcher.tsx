@@ -76,7 +76,7 @@ export function WorkspaceSidebarSwitcher() {
           );
         })}
         <DropdownMenuSeparator />
-       <DropdownMenuItem onSelect={() => router.push("/onboarding/create-workspace")}>
+        <DropdownMenuItem onSelect={() => router.push("/onboarding/create-workspace")}>
           Criar novo workspace
         </DropdownMenuItem>
         <DropdownMenuItem
