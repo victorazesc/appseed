@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
 import { AcceptInviteForm } from "@/components/workspace/accept-invite-form";
+import { getSessionUser } from "@/lib/auth";
 
 const paramsSchema = z.object({ token: z.string().min(10) });
 
@@ -26,6 +27,12 @@ export default async function AcceptInvitePage({ searchParams }: { searchParams:
   }
 
   const existingUser = await prisma.user.findUnique({ where: { email: invite.email.trim().toLowerCase() } });
+  const sessionUser = await getSessionUser();
+  const normalizedInviteEmail = invite.email.trim().toLowerCase();
+  const isAuthenticated = Boolean(sessionUser);
+  const sessionMatchesEmail =
+    sessionUser?.email?.trim().toLowerCase() === normalizedInviteEmail;
+  const nameSuggestion = existingUser?.name ?? sessionUser?.name ?? "";
 
   return (
     <AcceptInviteForm
@@ -33,7 +40,9 @@ export default async function AcceptInvitePage({ searchParams }: { searchParams:
       email={invite.email}
       workspaceName={invite.workspace?.name ?? "Workspace"}
       requiresPassword={!existingUser}
-      suggestedName={existingUser?.name ?? ""}
+      suggestedName={nameSuggestion}
+      isAuthenticated={isAuthenticated}
+      sessionMatchesEmail={sessionMatchesEmail}
     />
   );
 }

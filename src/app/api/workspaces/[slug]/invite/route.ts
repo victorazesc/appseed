@@ -15,6 +15,10 @@ const schema = z.object({
   role: z.nativeEnum(WorkspaceRole).optional().default(WorkspaceRole.MEMBER),
 });
 
+const deleteSchema = z.object({
+  inviteId: z.string().min(10, "Convite inválido"),
+});
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ slug: string }> },
@@ -114,6 +118,60 @@ export async function POST(
     return NextResponse.json({ invite: { token: invite.token, email: invite.email, role: invite.role, expiresAt: invite.expiresAt.toISOString() } });
   } catch (error) {
     console.error(`POST /api/workspaces/${slug}/invite`, error);
+    if (error instanceof Error && error.message === "WORKSPACE_NOT_FOUND") {
+      return jsonError("Workspace não encontrado", 404);
+    }
+    if (error instanceof Error && error.message === "FORBIDDEN") {
+      return jsonError("Acesso negado", 403);
+    }
+    return jsonError("Erro interno", 500);
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ slug: string }> },
+) {
+  const { slug } = await params;
+
+  try {
+    const rawBody = await request.json().catch(() => null);
+    const parsed = deleteSchema.safeParse(rawBody);
+
+    if (!parsed.success) {
+      return jsonError(parsed.error.issues[0]?.message ?? "Dados inválidos", 422);
+    }
+
+    const context = await requireWorkspace(slug);
+
+    if (!roleMeetsRequirement(context.role, [WorkspaceRole.ADMIN, WorkspaceRole.OWNER])) {
+      return jsonError("Acesso negado", 403);
+    }
+
+    const invite = await prisma.invite.findFirst({
+      where: {
+        id: parsed.data.inviteId,
+        workspaceId: context.workspace.id,
+      },
+      select: {
+        id: true,
+        acceptedAt: true,
+      },
+    });
+
+    if (!invite) {
+      return jsonError("Convite não encontrado", 404);
+    }
+
+    if (invite.acceptedAt) {
+      return jsonError("Convite já foi aceito", 409);
+    }
+
+    await prisma.invite.delete({ where: { id: invite.id } });
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error(`DELETE /api/workspaces/${slug}/invite`, error);
     if (error instanceof Error && error.message === "WORKSPACE_NOT_FOUND") {
       return jsonError("Workspace não encontrado", 404);
     }

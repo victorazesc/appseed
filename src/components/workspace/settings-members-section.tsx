@@ -125,6 +125,23 @@ export function WorkspaceMembersSection() {
     },
   });
 
+  const cancelInviteMutation = useMutation({
+    mutationFn: (inviteId: string) => {
+      if (!workspaceSlug) throw new Error("Workspace não encontrado");
+      return apiFetch<{ ok: boolean }>(`/api/workspaces/${workspaceSlug}/invite`, {
+        method: "DELETE",
+        body: JSON.stringify({ inviteId }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workspace-members", workspaceSlug] });
+      toast.success("Convite cancelado");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
   const inviteMutation = useMutation({
     mutationFn: async () => {
       if (!workspaceSlug) throw new Error("Workspace inválido");
@@ -314,23 +331,37 @@ export function WorkspaceMembersSection() {
                       Link: <span className="break-all font-mono text-[11px] text-primary">{link}</span>
                     </p>
                   </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      if (typeof navigator !== "undefined" && navigator.clipboard) {
-                        navigator.clipboard
-                          .writeText(link)
-                          .then(() => toast.success("Link copiado"))
-                          .catch(() => toast.error("Não foi possível copiar o link"));
-                      } else {
-                        toast.error("Copie o link manualmente");
-                      }
-                    }}
-                  >
-                    Copiar link
-                  </Button>
+                  <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-3">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        if (typeof navigator !== "undefined" && navigator.clipboard) {
+                          navigator.clipboard
+                            .writeText(link)
+                            .then(() => toast.success("Link copiado"))
+                            .catch(() => toast.error("Não foi possível copiar o link"));
+                        } else {
+                          toast.error("Copie o link manualmente");
+                        }
+                      }}
+                    >
+                      Copiar link
+                    </Button>
+                    {canManage ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive"
+                        disabled={cancelInviteMutation.isPending}
+                        onClick={() => cancelInviteMutation.mutateAsync(invite.id)}
+                      >
+                        Cancelar convite
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
               );
             })}

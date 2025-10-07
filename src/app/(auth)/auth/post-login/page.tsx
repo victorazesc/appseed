@@ -16,6 +16,21 @@ export default async function PostLoginPage() {
   });
 
   if (!membership?.workspace) {
+    const normalizedEmail = sessionUser.email?.trim().toLowerCase();
+    if (normalizedEmail) {
+      const pendingInvite = await prisma.invite.findFirst({
+        where: {
+          email: normalizedEmail,
+          acceptedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+      });
+
+      if (pendingInvite) {
+        redirect("/auth/invites");
+      }
+    }
+
     redirect("/onboarding/create-workspace");
   }
 

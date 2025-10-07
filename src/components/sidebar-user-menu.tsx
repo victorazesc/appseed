@@ -39,9 +39,9 @@ export function SidebarUserMenu({ user }: SidebarUserMenuProps) {
           <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">
             {initials}
           </span>
-          <span className="flex flex-col">
+          <span className="flex flex-col overflow-hidden">
             <span className="text-sm font-semibold text-foreground">{user.name ?? "Usuário"}</span>
-            <span className="text-xs text-muted-foreground">{user.email ?? "sem email"}</span>
+            <span className="text-xs text-muted-foreground truncate overflow-hidden">{user.email ?? "sem email"}</span>
           </span>
         </div>
         <ChevronDown className="h-4 w-4 text-muted-foreground transition group-hover:text-foreground" />
