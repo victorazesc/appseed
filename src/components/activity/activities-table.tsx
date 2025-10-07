@@ -74,7 +74,7 @@ export function ActivitiesTable({
             <th className="px-4 py-3 text-left font-semibold text-muted-foreground">{tableCopy.assignee}</th>
             <th className="px-4 py-3 text-left font-semibold text-muted-foreground">{tableCopy.dueDate}</th>
             <th className="px-4 py-3 text-left font-semibold text-muted-foreground">{tableCopy.status}</th>
-            <th className="px-4 py-3 text-right font-semibold text-muted-foreground">{tableCopy.actions}</th>
+            <th className="px-4 py-3 text-left font-semibold text-muted-foreground">{tableCopy.actions}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
@@ -97,7 +97,7 @@ export function ActivitiesTable({
             const followers = activity.followers ?? [];
 
             return (
-              <tr key={activity.id} className="bg-card">
+              <tr key={activity.id} className="bg-card align-center hover:bg-accent/10">
                 <td className="px-4 py-3 align-top">
                   <div className="flex flex-col gap-1">
                     <span className="font-medium text-foreground">{titleLabel}</span>
@@ -129,7 +129,7 @@ export function ActivitiesTable({
                     <span>{copy.table.noPipeline}</span>
                   )}
                 </td>
-                <td className="px-4 py-3 align-top">
+                <td className="px-4 py-3 align-middle">
                   <AssigneeSelect
                     value={activity.assignee?.id ?? ""}
                     onChange={(val) => onReassign(activity, val)}
@@ -137,7 +137,7 @@ export function ActivitiesTable({
                     labelUnassigned={copy.table.noAssignee}
                   />
                 </td>
-                <td className="px-4 py-3 align-top">
+                <td className="px-4 py-3 align-middle">
                   <span
                     className={cn(
                       "text-sm",
@@ -147,11 +147,11 @@ export function ActivitiesTable({
                     {dueLabel}
                   </span>
                 </td>
-                <td className="px-4 py-3 align-top">
+                <td className="px-4 py-3 align-middle">
                   <ActivityStatusBadge status={statusValue as "OPEN" | "COMPLETED"} label={statusLabel} />
                 </td>
-                <td className="px-4 py-3 align-top text-right">
-                  <div className="flex items-center justify-end gap-2">
+                <td className="px-4 py-3 align-middle text-left">
+                  <div className="flex items-center justify-start gap-2">
                     <Button
                       size="sm"
                       variant="ghost"

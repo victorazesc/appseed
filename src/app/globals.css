@@ -95,3 +95,11 @@
     @apply bg-background text-foreground antialiased;
   }
 }
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0);
+}
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}

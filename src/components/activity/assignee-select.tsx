@@ -43,7 +43,7 @@ export function AssigneeSelect({
         value={currentValue}
         onChange={handleChange}
         disabled={disabled || isLoading}
-        className="pr-10"
+        className="pr-10 h-10 rounded-md"
       >
         <option value="">{allowUnassigned ? labelUnassigned : placeholder}</option>
         {data?.map((user) => {

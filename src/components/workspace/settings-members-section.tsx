@@ -196,6 +196,7 @@ export function WorkspaceMembersSection() {
             />
             <Select
               value={inviteRole}
+              className="h-10 rounded-md"
               onChange={(event) => setInviteRole(event.target.value as WorkspaceRole)}
               disabled={inviteMutation.isPending}
             >
@@ -257,6 +258,7 @@ export function WorkspaceMembersSection() {
                         {canManage ? (
                           <Select
                             value={member.role}
+                            className="h-9 rounded-md max-w-[160px]"
                             onChange={(event) =>
                               updateRoleMutation.mutateAsync({
                                 memberId: member.id,

@@ -310,6 +310,7 @@ export default function ActivitiesPage() {
               {filtersCopy.assignee}
             </label>
             <Select
+              className="h-10 rounded-md"
               id="filter-assignee"
               value={filters.assigneeId}
               onChange={(event) =>
@@ -331,6 +332,7 @@ export default function ActivitiesPage() {
             </label>
             <Select
               id="filter-due"
+              className="h-10 rounded-md"
               value={filters.duePreset}
               onChange={(event) =>
                 setFilters((prev) => ({ ...prev, duePreset: event.target.value as DuePreset }))
@@ -345,6 +347,7 @@ export default function ActivitiesPage() {
               <div className="mt-2 flex gap-2">
                 <Input
                   type="date"
+                  className="h-10 rounded-md"
                   value={filters.dueFrom ?? ""}
                   onChange={(event) =>
                     setFilters((prev) => ({ ...prev, dueFrom: event.target.value }))
@@ -352,6 +355,7 @@ export default function ActivitiesPage() {
                 />
                 <Input
                   type="date"
+                  className="h-10 rounded-md"
                   value={filters.dueTo ?? ""}
                   onChange={(event) =>
                     setFilters((prev) => ({ ...prev, dueTo: event.target.value }))
