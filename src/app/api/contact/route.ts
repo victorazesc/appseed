@@ -134,16 +134,16 @@ async function createOrUpdateLead(data: SanitizedPayload) {
 
   const existingLead = leadMatchFilters.length
     ? await prisma.lead.findFirst({
-        where: {
-          archived: false,
-          OR: leadMatchFilters,
+      where: {
+        archived: false,
+        OR: leadMatchFilters,
+      },
+      include: {
+        pipeline: {
+          select: { workspaceId: true },
         },
-        include: {
-          pipeline: {
-            select: { workspaceId: true },
-          },
-        },
-      })
+      },
+    })
     : null;
 
   if (existingLead) {
@@ -352,7 +352,7 @@ function leadConfirmationTemplate({ name }: { name: string }): string {
                       <td style="color:#047857;font-size:14px;line-height:1.5;">
                         <strong>AppSeed</strong><br />
                         contato@appseed.com.br<br />
-                        +55 47 9 9671-8866
+                        +55 47 93385-9251
                       </td>
                     </tr>
                   </table>
