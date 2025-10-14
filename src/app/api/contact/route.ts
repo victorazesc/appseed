@@ -10,6 +10,8 @@ const DEFAULT_FROM_NAME = process.env.SMTP_FROM_NAME ?? "AppSeed";
 const INBOX_EMAIL = process.env.CONTACT_INBOX_EMAIL ?? DEFAULT_FROM_EMAIL;
 const CONFIRMATION_ENABLED = process.env.SEND_CONTACT_CONFIRMATION !== "false";
 const CONTACT_PIPELINE_WEBHOOK_URL = process.env.CONTACT_PIPELINE_WEBHOOK_URL;
+const CONTACT_PIPELINE_WEBHOOK_TOKEN =
+  process.env.CONTACT_PIPELINE_WEBHOOK_TOKEN ?? process.env.AGENDOR_API_TOKEN ?? "";
 
 interface ContactPayload {
   name?: string;
@@ -204,9 +206,15 @@ async function dispatchPipelineWebhook(data: SanitizedPayload) {
       },
     };
 
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+
+    if (CONTACT_PIPELINE_WEBHOOK_TOKEN) {
+      headers.Authorization = `Bearer ${CONTACT_PIPELINE_WEBHOOK_TOKEN}`;
+    }
+
     const response = await fetch(CONTACT_PIPELINE_WEBHOOK_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify(payload),
       signal: controller.signal,
     });
